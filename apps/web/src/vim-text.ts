@@ -23,6 +23,14 @@ const MOTIONS: Readonly<Record<string, readonly [direction: string, granularity:
 const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
 let selecting = false;
 
+/** Hover-only details, such as message timestamps, sit at zero opacity until hovered. */
+function isShown(element: Element) {
+  return (
+    !element.closest(UNSEEN) &&
+    element.checkVisibility({ opacityProperty: true, visibilityProperty: true })
+  );
+}
+
 function overlaps(a: DOMRect, b: DOMRect) {
   return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 }
@@ -55,7 +63,7 @@ export function showWordHints() {
   const targets: HintTarget[] = [];
   for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
     const parent = node.parentElement;
-    if (!parent || parent.closest(UNSEEN)) continue;
+    if (!parent || !isShown(parent)) continue;
     if (!overlaps(parent.getBoundingClientRect(), bounds)) continue;
     for (const { index, isWordLike } of segmenter.segment(node.data)) {
       if (!isWordLike) continue;
@@ -84,9 +92,7 @@ export function showBlockHints() {
   const blocks = [...conversation.area.querySelectorAll<HTMLElement>(BLOCKS)];
   showHints(
     blocks
-      .filter(
-        (block) => !block.closest(UNSEEN) && conversation.isVisible(block.getBoundingClientRect()),
-      )
+      .filter((block) => isShown(block) && conversation.isVisible(block.getBoundingClientRect()))
       .map((block) => {
         const { left, top } = block.getBoundingClientRect();
         return { left, top, pick: () => copyBlock(block) };
