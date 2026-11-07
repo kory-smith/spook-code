@@ -40,8 +40,11 @@ Vim.mapCommand("<Space>f", "action", "showLinkHints", {}, { context: "normal" })
 // In a text box `gn` belongs to vim, so a new thread takes the same leader as the hints.
 Vim.defineAction("newThread", startNewThread);
 Vim.mapCommand("<Space>n", "action", "newThread", {}, { context: "normal" });
-// zv and yv mean other things in a text box, so copying from the conversation uses the leader.
+// Copying from the conversation works from the input box too, with or without the leader.
 Vim.defineAction("showWordHints", showWordHints);
 Vim.mapCommand("<Space>v", "action", "showWordHints", {}, { context: "normal" });
+Vim.mapCommand("zv", "action", "showWordHints", {}, { context: "normal" });
 Vim.defineAction("showBlockHints", showBlockHints);
 Vim.mapCommand("<Space>y", "action", "showBlockHints", {}, { context: "normal" });
+// The engine has no forced-charwise `v` after an operator, so `yv` drops the yank for the hints.
+Vim.map("v", "<Esc><Space>y", "operatorPending");
