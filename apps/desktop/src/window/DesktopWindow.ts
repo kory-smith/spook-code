@@ -777,6 +777,11 @@ export const make = Effect.gen(function* () {
       developmentLoadRetryIndex = 0;
       window.setTitle(environment.displayName);
       if (environment.platform === "darwin") syncMacosWindowButtons(window);
+      // Chromium's CSS AccentColor ignores the OS setting, so hand the renderer the real one.
+      if (environment.platform !== "linux") {
+        const accent = Electron.systemPreferences.getAccentColor();
+        void window.webContents.insertCSS(`:root { --system-accent: #${accent}; }`);
+      }
     });
     window.webContents.on(
       "did-fail-load",

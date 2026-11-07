@@ -8,6 +8,7 @@ import {
 } from "./components/chat/composerFocusRedirect";
 import { effectiveShortcutsForCommand } from "./keybindings";
 import { isMacPlatform } from "./lib/utils";
+import { requestWorkspaceFocus } from "./lib/workspaceFocus";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
 import { showLinkHints } from "./vim-link-hints";
@@ -103,6 +104,12 @@ function pressArrow(element: Element, key: string) {
 
 let pending = "";
 let pendingAt = 0;
+
+/** Leaves the composer for the conversation, where these keys work; `i` comes back. */
+export function leaveComposer() {
+  requestWorkspaceFocus({ area: "conversation" });
+  return true;
+}
 
 /** Returns whether the key was used. Editable targets belong to their own vim mode. */
 export function handleVimNavigationKey(event: KeyboardEvent) {

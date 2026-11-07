@@ -723,6 +723,8 @@ interface VimControllerHooks {
   readonly setMode: (mode: VimMode) => void;
   /** Runs after each key in normal mode, once the engine has finished. */
   readonly afterKey?: () => void;
+  /** Escape in normal mode with nothing to cancel; returns whether it was used. */
+  readonly onIdleEscape?: () => boolean;
 }
 
 /** The key rules every surface shares: what the engine takes and what stays with the app. */
@@ -853,7 +855,7 @@ export function createVimController(cm: VimEditor, hooks: VimControllerHooks) {
           return true;
         }
         if (HOST_OWNED_KEYS.has(key)) return false;
-        if (escape && !isPending()) return clearSearch();
+        if (escape && !isPending()) return clearSearch() || (hooks.onIdleEscape?.() ?? false);
         // Deleting keys must never reach native editing here, bound or not.
         if (event.key === "Backspace" || event.key === "Delete") {
           if (!chord) handleKey(key);

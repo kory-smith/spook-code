@@ -28,6 +28,7 @@ import {
   splitOrLiftListItem,
 } from "~/composer-rich-text-doc";
 import { createVimController, INDENT, Pos, Vim, VimEditor, vimTextHooks } from "./vim-engine";
+import { leaveComposer } from "./vim-navigation";
 
 const LIST_ITEM_NODES = new Set(["listItem", "taskItem"]);
 const RICH_REGISTER_LIMIT = 32;
@@ -754,6 +755,7 @@ export function createComposerVimHost(view: EditorView): ComposerVimHost & {
     ownsEvent: (event) => event.target === view.dom,
     setMode: (mode) => view.dispatch(setComposerVimState(view.state.tr, { mode })),
     afterKey: resetEmptiedBlock,
+    onIdleEscape: leaveComposer,
   });
   const { vim } = controller;
 

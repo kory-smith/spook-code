@@ -1151,7 +1151,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --destructive: var(--error);
   --border: var(--color-zinc-200);
   --input: var(--color-zinc-300);
-  --ring: var(--primary);
+  /* The desktop app supplies the system accent color; elsewhere the theme decides. */
+  --ring: var(--system-accent, var(--primary));
   --destructive-foreground: var(--error-foreground);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-700);
@@ -1370,7 +1371,8 @@ html[data-theme-id]:not([data-theme-id=""]) {
   --update-foreground: var(--app-theme-update-foreground);
   --border: var(--app-theme-border);
   --input: var(--app-theme-input);
-  --ring: var(--app-theme-focus);
+  /* The desktop app supplies the system accent color; elsewhere the theme decides. */
+  --ring: var(--system-accent, var(--app-theme-focus));
   --sidebar: var(--app-theme-sidebar);
   --sidebar-foreground: var(--app-theme-sidebar-foreground);
   --sidebar-muted-foreground: var(--app-theme-sidebar-muted-foreground);
@@ -2568,8 +2570,18 @@ code {
   }
 }
 
-/* A workspace area with no control of its own takes F6 focus itself; keep that visible. */
-[data-workspace-area]:focus-visible {
+/* Outline whichever area holds focus, so it is clear where keys go. */
+[data-workspace-area]:focus-within {
   outline: 2px solid var(--ring);
   outline-offset: -2px;
+}
+
+/* The composer's area is an overlay covering the whole chat, so its outline goes on the input box. */
+[data-workspace-area="composer"]:focus-within {
+  outline: none;
+
+  & [data-chat-composer-surface] {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
