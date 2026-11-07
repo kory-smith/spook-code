@@ -69,7 +69,7 @@ export function showLinkHints() {
     const { left, top } = target.getBoundingClientRect();
     const element = document.createElement("span");
     element.className =
-      "absolute rounded-sm bg-primary px-1 font-mono text-xs font-semibold text-primary-foreground uppercase shadow-sm";
+      "absolute rounded-sm bg-ring px-1 font-mono text-xs font-semibold text-black uppercase shadow-sm";
     element.style.left = `${Math.max(left, 0)}px`;
     element.style.top = `${Math.max(top, 0)}px`;
     element.textContent = label;
