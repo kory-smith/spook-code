@@ -5,6 +5,15 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PATH="$HOME/.local/bin:$HOME/.local/share/vite-plus/bin:$HOME/.cargo/bin:/opt/homebrew/bin:$PATH"
 
+# Nothing to update needs no agent: say so briefly and let the window close.
+git fetch --quiet origin --tags
+latest="$(gh release view --repo pingdotgg/t3code --json tagName --jq .tagName)"
+if git merge-base --is-ancestor "$latest" custom; then
+  echo "Already on upstream $latest; nothing to update."
+  sleep 2
+  exit 0
+fi
+
 exec claude --allowedTools \
   "Read" "Grep" "Glob" \
   "Bash(git status:*)" "Bash(git fetch:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" \

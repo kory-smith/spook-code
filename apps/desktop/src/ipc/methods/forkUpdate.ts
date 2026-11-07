@@ -27,7 +27,14 @@ export const startForkUpdate = DesktopIpc.makeIpcMethod({
     const spawner = yield* Effect.serviceOption(ChildProcessSpawner.ChildProcessSpawner);
     if (Option.isNone(spawner)) return false;
     const script = `${__T3CODE_FORK_REPO__}/scripts/fork-update/update.command`;
-    const opened = ChildProcess.make("open", ["-na", "Ghostty", "--args", "-e", script]);
+    const opened = ChildProcess.make("open", [
+      "-na",
+      "Ghostty",
+      "--args",
+      "--quit-after-last-window-closed=true",
+      "-e",
+      script,
+    ]);
     return yield* spawner.value.exitCode(opened).pipe(
       Effect.map((exitCode) => exitCode === 0),
       Effect.orElseSucceed(() => false),
