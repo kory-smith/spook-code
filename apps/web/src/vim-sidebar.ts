@@ -33,25 +33,27 @@ export function openSidebarRow(row: HTMLElement, stay: boolean) {
   window.addEventListener("focusin", reclaim);
 }
 
+/** Returns whether there were tabs to switch. */
 function switchEnvironmentTab(step: 1 | -1) {
   const tabs = [...document.querySelectorAll<HTMLElement>(`${SIDEBAR} [role="tab"]`)];
-  if (tabs.length < 2) return;
+  if (tabs.length < 2) return false;
+  const inSidebar = document.activeElement?.closest(SIDEBAR) != null;
   const current = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
   tabs[(current + step + tabs.length) % tabs.length]!.click();
   // The focused row may belong to the other environment, so land again once the tab renders.
-  requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
+  if (inSidebar) requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
+  return true;
 }
 
 /**
- * Cmd-Shift-[ and Cmd-Shift-] change browser tabs, so in the sidebar they change environment
- * tabs like gT and gt; elsewhere they keep switching threads. Returns whether the key was used.
+ * Cmd-Shift-[ and Cmd-Shift-] change browser tabs, so from anywhere they change environment
+ * tabs like gT and gt, leaving focus where it is. With one environment they keep switching
+ * threads. Returns whether the key was used.
  */
-export function handleSidebarTabShortcut(event: KeyboardEvent) {
+export function handleEnvironmentTabShortcut(event: KeyboardEvent) {
   if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) return false;
   if (event.code !== "BracketLeft" && event.code !== "BracketRight") return false;
-  if (!(document.activeElement?.closest(SIDEBAR) ?? null)) return false;
-  switchEnvironmentTab(event.code === "BracketRight" ? 1 : -1);
-  return true;
+  return switchEnvironmentTab(event.code === "BracketRight" ? 1 : -1);
 }
 
 /** Returns whether the key sequence was used. */

@@ -2,7 +2,7 @@ import { getClientSettings, subscribeClientSettings } from "./hooks/useSettings"
 import type { createTextareaVimHost } from "./textarea-vim";
 import { handleAreaKey } from "./vim-areas";
 import { handleLinkHintKey } from "./vim-link-hints";
-import { handleSidebarTabShortcut } from "./vim-sidebar";
+import { handleEnvironmentTabShortcut } from "./vim-sidebar";
 import { handleVimNavigationKey } from "./vim-navigation";
 
 type TextareaHost = ReturnType<typeof createTextareaVimHost>;
@@ -33,7 +33,7 @@ export function startVimMode() {
     if (target instanceof HTMLTextAreaElement && target.matches(TEXTAREA_SELECTOR)) attach(target);
   };
   const onKeyDown = (event: KeyboardEvent) => {
-    if (handleLinkHintKey(event) || handleAreaKey(event) || handleSidebarTabShortcut(event)) {
+    if (handleLinkHintKey(event) || handleAreaKey(event) || handleEnvironmentTabShortcut(event)) {
       event.preventDefault();
       event.stopPropagation();
       return;
