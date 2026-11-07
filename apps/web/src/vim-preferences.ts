@@ -1,5 +1,6 @@
 import { showLinkHints } from "./vim-link-hints";
 import { Vim } from "./vim-engine";
+import { startNewThread } from "./vim-navigation";
 
 // Personal key preferences, kept out of vim-engine so stock vim stays testable and rebases stay easy.
 
@@ -35,3 +36,6 @@ Vim.noremap("U", "<C-r>", "normal");
 Vim.unmap("<Space>", undefined as unknown as string);
 Vim.defineAction("showLinkHints", showLinkHints);
 Vim.mapCommand("<Space>f", "action", "showLinkHints", {}, { context: "normal" });
+// In a text box `gn` belongs to vim, so a new thread takes the same leader as the hints.
+Vim.defineAction("newThread", startNewThread);
+Vim.mapCommand("<Space>n", "action", "newThread", {}, { context: "normal" });

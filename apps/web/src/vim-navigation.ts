@@ -106,6 +106,11 @@ function pressArrow(element: Element, key: string) {
 let pending = "";
 let pendingAt = 0;
 
+/** Starts a new thread, as `gn` does outside a text box. */
+export function startNewThread() {
+  runCommand("chat.new");
+}
+
 /** Leaves the composer for the conversation, where these keys work; `i` comes back. */
 export function leaveComposer() {
   requestWorkspaceFocus({ area: "conversation" });
