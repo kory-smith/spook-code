@@ -10,6 +10,7 @@ import { effectiveShortcutsForCommand } from "./keybindings";
 import { isMacPlatform } from "./lib/utils";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
+import { showLinkHints } from "./vim-link-hints";
 
 const SEQUENCE_TIMEOUT = 1000;
 const LINE_SCROLL = 60;
@@ -150,6 +151,9 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
       return true;
     case "i":
       document.querySelector<HTMLElement>(COMPOSER_SELECTOR)?.focus();
+      return true;
+    case "f":
+      showLinkHints();
       return true;
     default:
   }

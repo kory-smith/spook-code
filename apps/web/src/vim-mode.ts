@@ -1,5 +1,6 @@
 import { getClientSettings, subscribeClientSettings } from "./hooks/useSettings";
 import type { createTextareaVimHost } from "./textarea-vim";
+import { handleLinkHintKey } from "./vim-link-hints";
 import { handleVimNavigationKey } from "./vim-navigation";
 
 type TextareaHost = ReturnType<typeof createTextareaVimHost>;
@@ -30,6 +31,11 @@ export function startVimMode() {
     if (target instanceof HTMLTextAreaElement && target.matches(TEXTAREA_SELECTOR)) attach(target);
   };
   const onKeyDown = (event: KeyboardEvent) => {
+    if (handleLinkHintKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const host = event.target instanceof HTMLTextAreaElement ? hosts.get(event.target) : undefined;
     if (!(host ? host.handleKeyDown(event) : handleVimNavigationKey(event))) return;
     event.preventDefault();
@@ -40,6 +46,7 @@ export function startVimMode() {
     if (next === enabled) return;
     enabled = next;
     if (enabled) {
+      void import("./vim-preferences");
       window.addEventListener("focusin", onFocusIn, true);
       window.addEventListener("keydown", onKeyDown, true);
       if (document.activeElement instanceof HTMLTextAreaElement) {
