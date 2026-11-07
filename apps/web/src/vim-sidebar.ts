@@ -42,6 +42,18 @@ function switchEnvironmentTab(step: 1 | -1) {
   requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
 }
 
+/**
+ * Cmd-Shift-[ and Cmd-Shift-] change browser tabs, so in the sidebar they change environment
+ * tabs like gT and gt; elsewhere they keep switching threads. Returns whether the key was used.
+ */
+export function handleSidebarTabShortcut(event: KeyboardEvent) {
+  if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) return false;
+  if (event.code !== "BracketLeft" && event.code !== "BracketRight") return false;
+  if (!(document.activeElement?.closest(SIDEBAR) ?? null)) return false;
+  switchEnvironmentTab(event.code === "BracketRight" ? 1 : -1);
+  return true;
+}
+
 /** Returns whether the key sequence was used. */
 export function handleSidebarKey(sequence: string, active: Element | null) {
   if (!active?.closest(SIDEBAR)) return false;
