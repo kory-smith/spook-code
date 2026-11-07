@@ -1,5 +1,6 @@
-import * as Electron from "electron";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import * as Schema from "effect/Schema";
 
 import * as IpcChannels from "../channels.ts";
@@ -17,14 +18,19 @@ export const getForkBaseRelease = DesktopIpc.makeIpcMethod({
   handler: () => Effect.succeed(__T3CODE_FORK_BASE_RELEASE__),
 });
 
-/** Opens the update script in Terminal, which outlives this app when the script quits it. */
+/** Runs the update script in a new Ghostty window, which outlives this app when the script quits it. */
 export const startForkUpdate = DesktopIpc.makeIpcMethod({
   channel: IpcChannels.START_FORK_UPDATE_CHANNEL,
   payload: Schema.Undefined,
   result: Schema.Boolean,
   handler: Effect.fn("desktop.ipc.forkUpdate.start")(function* () {
+    const spawner = yield* Effect.serviceOption(ChildProcessSpawner.ChildProcessSpawner);
+    if (Option.isNone(spawner)) return false;
     const script = `${__T3CODE_FORK_REPO__}/scripts/fork-update/update.command`;
-    const error = yield* Effect.promise(() => Electron.shell.openPath(script));
-    return error === "";
+    const opened = ChildProcess.make("open", ["-na", "Ghostty", "--args", "-e", script]);
+    return yield* spawner.value.exitCode(opened).pipe(
+      Effect.map((exitCode) => exitCode === 0),
+      Effect.orElseSucceed(() => false),
+    );
   }),
 });

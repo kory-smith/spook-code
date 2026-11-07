@@ -1,5 +1,5 @@
 #!/bin/bash
-# Opened in Terminal by the fork's "Update fork" button. Runs Claude Code on prompt.md, allowed
+# Run in a new Ghostty window by the fork's "Update fork" button. Runs Claude Code on prompt.md, allowed
 # exactly the commands an update needs, so a clean update finishes without questions.
 set -euo pipefail
 cd "$(dirname "$0")/../.."

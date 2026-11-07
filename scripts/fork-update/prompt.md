@@ -1,6 +1,6 @@
 You are updating Kory's personal fork of T3 Code, in this checkout, to upstream's latest release.
 Merge it if that goes cleanly; otherwise stop and explain. Kory clicked "Update fork" in the app
-and is watching this Terminal.
+and is watching this terminal window.
 
 ## The fork
 
