@@ -133,11 +133,21 @@ function searchDecorations(state: EditorState, query: RegExp): Decoration[] {
     );
 }
 
+function emptyLineCursor() {
+  const block = document.createElement("span");
+  block.className =
+    "pointer-events-none inline-block h-[1.2em] w-[0.6em] rounded-[1px] bg-foreground align-text-bottom";
+  return block;
+}
+
 function cursorDecoration(state: EditorState): Decoration[] {
   const flat = flattenComposerVimDocument(state.doc);
   const cursor = composerVimFlatOffset(flat, state.selection.head);
   const character = flat.text[cursor];
-  if (character === undefined || character === "\n") return [];
+  // An empty line has no character to paint, so a block stands in for it.
+  if (character === undefined || character === "\n") {
+    return [Decoration.widget(state.selection.head, emptyLineCursor, { key: "vim-cursor" })];
+  }
   const segment = graphemes.segment(flat.text).containing(cursor);
   const end = segment ? segment.index + segment.segment.length : cursor + 1;
   return [
@@ -213,6 +223,11 @@ export const ComposerVimExtension = Extension.create({
           },
         },
         props: {
+          // The block cursor marks normal mode; the thin native caret would read as insert.
+          attributes(state) {
+            const mode = composerVimKeyName.getState(state)?.mode ?? "insert";
+            return mode === "insert" ? {} : { class: "caret-transparent" };
+          },
           decorations(state) {
             const plugin = composerVimKeyName.getState(state);
             if (!plugin || (plugin.mode === "insert" && !plugin.search)) return null;

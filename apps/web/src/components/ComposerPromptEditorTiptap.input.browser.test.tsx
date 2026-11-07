@@ -842,6 +842,18 @@ describe("vim mode", () => {
     await expect.element(screen.getByRole("status")).not.toBeInTheDocument();
   });
 
+  it("shows a block cursor and no caret in normal mode, even on an empty line", async () => {
+    await using screen = await mountVim("");
+    const dom = screen.editor.view.dom;
+    await userEvent.keyboard("{Escape}");
+    await expect.element(screen.getByRole("status")).toHaveTextContent("NORMAL");
+    expect(dom.classList.contains("caret-transparent")).toBe(true);
+    expect(dom.querySelector("span.bg-foreground")).not.toBeNull();
+    await userEvent.keyboard("i");
+    expect(dom.classList.contains("caret-transparent")).toBe(false);
+    expect(dom.querySelector("span.bg-foreground")).toBeNull();
+  });
+
   it("shows visual modes and acts on the selection", async () => {
     await using screen = await mountVim("hello world");
     await userEvent.keyboard("{Escape}0v");
