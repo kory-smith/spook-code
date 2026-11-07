@@ -26,17 +26,12 @@ function isShown(area: string) {
   return element !== null && element.getClientRects().length > 0;
 }
 
-/**
- * Lands on the open thread, as tree plugins reveal the open file, else the first row. An empty
- * environment lands on its tab rather than the sidebar's first control, the logo link.
- */
+/** Lands on the open thread, as tree plugins reveal the open file, or else the first row. */
 export function focusSidebar() {
-  const selector = [
-    CURRENT_THREAD_ROW,
-    "[data-sidebar-row]",
-    '[role="tab"][aria-selected="true"]',
-  ].find((candidate) => document.querySelector(`[data-workspace-area="sidebar"] ${candidate}`));
-  requestWorkspaceFocus(selector ? { area: "sidebar", selector } : { area: "sidebar" });
+  const row = [CURRENT_THREAD_ROW, "[data-sidebar-row]"].find(
+    (selector) => document.querySelector(`[data-workspace-area="sidebar"] ${selector}`) !== null,
+  );
+  requestWorkspaceFocus(row ? { area: "sidebar", selector: row } : { area: "sidebar" });
 }
 
 function focusArea(area: string) {
