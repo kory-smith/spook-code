@@ -16,10 +16,10 @@ fi
 
 exec claude --allowedTools \
   "Read" "Grep" "Glob" \
-  "Bash(git status:*)" "Bash(git fetch:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" \
-  "Bash(git describe:*)" "Bash(git rev-parse:*)" "Bash(git merge-base:*)" "Bash(git branch:*)" \
+  "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" \
+  "Bash(git rev-parse:*)" "Bash(git branch:*)" \
   "Bash(git merge --no-commit --no-ff:*)" "Bash(git merge --abort)" "Bash(git commit --no-edit)" \
   "Bash(gh release view:*)" "Bash(gh pr view:*)" \
   "Bash(vp i)" "Bash(vp run check:changed)" \
   "Bash(scripts/fork-update/build.sh)" "Bash(scripts/fork-update/install.sh)" \
-  -- "$(cat scripts/fork-update/prompt.md)"
+  -- "$(sed "s/{{RELEASE}}/$latest/g" scripts/fork-update/prompt.md)"

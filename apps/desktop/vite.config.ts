@@ -1,6 +1,4 @@
 import "vite-plus/test/config";
-// @effect-diagnostics-next-line nodeBuiltinImport:off -- Vite config runs before any Effect runtime.
-import * as NodeChildProcess from "node:child_process";
 import * as NodeURL from "node:url";
 import { defaultInclude, defineConfig } from "vite-plus";
 
@@ -15,24 +13,11 @@ const isMainProcessExternal = (id: string) =>
 const shouldLaunchElectronAfterPack = process.env.T3CODE_DESKTOP_DEV === "1";
 const repoRoot = NodeURL.fileURLToPath(new URL("../..", import.meta.url)).replace(/\/$/, "");
 
-function newestUpstreamRelease() {
-  try {
-    return NodeChildProcess.execFileSync(
-      "git",
-      ["describe", "--tags", "--abbrev=0", "--match", "v*", "--exclude", "*-*"],
-      { cwd: repoRoot, encoding: "utf8" },
-    ).trim();
-  } catch {
-    return "";
-  }
-}
-
 const publicConfigDefine = {
   __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__: JSON.stringify(
     repoEnv.T3CODE_CLERK_PUBLISHABLE_KEY?.trim() ?? "",
   ),
   __T3CODE_FORK_REPO__: JSON.stringify(repoRoot),
-  __T3CODE_FORK_BASE_RELEASE__: JSON.stringify(newestUpstreamRelease()),
 };
 
 export default defineConfig({

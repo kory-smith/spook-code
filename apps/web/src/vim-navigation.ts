@@ -8,7 +8,6 @@ import {
 } from "./components/chat/composerFocusRedirect";
 import { effectiveShortcutsForCommand } from "./keybindings";
 import { isMacPlatform } from "./lib/utils";
-import { requestWorkspaceFocus } from "./lib/workspaceFocus";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
 import { showLinkHints } from "./vim-hints";
@@ -82,7 +81,7 @@ function activeScroller() {
   return null;
 }
 
-function runCommand(command: KeybindingCommand) {
+export function runCommand(command: KeybindingCommand) {
   const keybindings = appAtomRegistry.get(primaryServerKeybindingsAtom);
   const shortcut = effectiveShortcutsForCommand(keybindings, command)[0];
   if (!shortcut) return;
@@ -107,17 +106,6 @@ function pressArrow(element: Element, key: string) {
 let pending = "";
 let pendingAt = 0;
 
-/** Starts a new thread, as `gn` does outside a text box. */
-export function startNewThread() {
-  runCommand("chat.new");
-}
-
-/** Leaves the composer for the conversation, where these keys work; `i` comes back. */
-export function leaveComposer() {
-  requestWorkspaceFocus({ area: "conversation" });
-  return true;
-}
-
 /** Returns whether the key was used. Editable targets belong to their own vim mode. */
 export function handleVimNavigationKey(event: KeyboardEvent) {
   if (!event.isTrusted || event.defaultPrevented || event.isComposing) return false;
@@ -125,13 +113,12 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
   const target = event.target;
   if (!(target instanceof Element) || target.closest(TYPE_TO_FOCUS_EDITABLE_SELECTOR)) return false;
   const active = document.activeElement;
-  if (event.key === "Enter") return handleSidebarKey("Enter", active);
-  if ([...event.key].length !== 1 || isSurfaceLauncherKey(event)) return false;
-  // Opening a thread with `l` comes before `l` stepping into a folder, which only folders use.
+  // Opening a thread with Enter, `o`, or `l` comes before `l` stepping into a folder.
   if (handleSidebarKey(event.key, active)) {
     pending = "";
     return true;
   }
+  if ([...event.key].length !== 1 || isSurfaceLauncherKey(event)) return false;
 
   const list = active?.closest(LIST_SELECTOR);
   const arrow = LIST_ARROWS[event.key];

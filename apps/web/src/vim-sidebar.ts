@@ -1,4 +1,7 @@
+import { threadTraversalDirectionFromCommand, resolveShortcutCommand } from "./keybindings";
 import { requestWorkspaceFocus } from "./lib/workspaceFocus";
+import { appAtomRegistry } from "./rpc/atomRegistry";
+import { primaryServerKeybindingsAtom } from "./state/server";
 import { focusSidebar } from "./vim-areas";
 
 // Tree-plugin keys for the sidebar, after NERDTree and nvim-tree: Enter or `o` opens a thread
@@ -7,6 +10,7 @@ import { focusSidebar } from "./vim-areas";
 const SIDEBAR = '[data-workspace-area="sidebar"]';
 /** Rows that open a conversation: threads and drafts, not folders or shelves. */
 export const OPENABLE_ROW = '[data-thread-item] [data-sidebar-row], [data-sidebar-row^="draft:"]';
+const STAY_AFTER_OPEN: Readonly<Record<string, boolean>> = { Enter: false, o: false, l: true };
 
 export function openSidebarRow(row: HTMLElement, stay: boolean) {
   row.click();
@@ -14,7 +18,8 @@ export function openSidebarRow(row: HTMLElement, stay: boolean) {
     requestWorkspaceFocus({ area: "content" });
     return;
   }
-  // An opened thread focuses its input box a frame later; staying takes focus back once.
+  // An opened thread focuses its input box a frame later; staying takes focus back once,
+  // unless the user moves on first.
   const selector = `[data-sidebar-row="${CSS.escape(row.dataset.sidebarRow!)}"]`;
   const reclaim = (event: FocusEvent) => {
     stop();
@@ -27,10 +32,14 @@ export function openSidebarRow(row: HTMLElement, stay: boolean) {
   };
   const stop = () => {
     window.removeEventListener("focusin", reclaim);
+    window.removeEventListener("keydown", stop, true);
+    window.removeEventListener("pointerdown", stop, true);
     clearTimeout(timeout);
   };
   const timeout = setTimeout(stop, 1000);
   window.addEventListener("focusin", reclaim);
+  window.addEventListener("keydown", stop, true);
+  window.addEventListener("pointerdown", stop, true);
 }
 
 /** Returns whether there were tabs to switch. */
@@ -46,14 +55,14 @@ function switchEnvironmentTab(step: 1 | -1) {
 }
 
 /**
- * Cmd-Shift-[ and Cmd-Shift-] change browser tabs, so from anywhere they change environment
- * tabs like gT and gt, leaving focus where it is. With one environment they keep switching
- * threads. Returns whether the key was used.
+ * The previous/next thread shortcuts (Cmd-Shift-[ and ] by default, like browser tabs) switch
+ * environment tabs instead while there are tabs, leaving focus where it is.
  */
 export function handleEnvironmentTabShortcut(event: KeyboardEvent) {
-  if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) return false;
-  if (event.code !== "BracketLeft" && event.code !== "BracketRight") return false;
-  return switchEnvironmentTab(event.code === "BracketRight" ? 1 : -1);
+  if (!event.metaKey && !event.ctrlKey) return false;
+  const keybindings = appAtomRegistry.get(primaryServerKeybindingsAtom);
+  const direction = threadTraversalDirectionFromCommand(resolveShortcutCommand(event, keybindings));
+  return direction !== null && switchEnvironmentTab(direction === "next" ? 1 : -1);
 }
 
 /** Returns whether the key sequence was used. */
@@ -65,13 +74,8 @@ export function handleSidebarKey(sequence: string, active: Element | null) {
   }
   const row = active.closest<HTMLElement>("[data-sidebar-row]");
   if (!row?.matches(OPENABLE_ROW) || row.hasAttribute("aria-expanded")) return false;
-  if (sequence === "Enter" || sequence === "o") {
-    openSidebarRow(row, false);
-    return true;
-  }
-  if (sequence === "l") {
-    openSidebarRow(row, true);
-    return true;
-  }
-  return false;
+  const stay = STAY_AFTER_OPEN[sequence];
+  if (stay === undefined) return false;
+  openSidebarRow(row, stay);
+  return true;
 }

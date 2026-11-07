@@ -1,7 +1,7 @@
 import { showLinkHints } from "./vim-hints";
 import { Vim } from "./vim-engine";
 import { showBlockHints, showWordHints } from "./vim-text";
-import { startNewThread } from "./vim-navigation";
+import { runCommand } from "./vim-navigation";
 
 // Personal key preferences, kept out of vim-engine so stock vim stays testable and rebases stay easy.
 
@@ -38,7 +38,7 @@ Vim.unmap("<Space>", undefined as unknown as string);
 Vim.defineAction("showLinkHints", showLinkHints);
 Vim.mapCommand("<Space>f", "action", "showLinkHints", {}, { context: "normal" });
 // In a text box `gn` belongs to vim, so a new thread takes the same leader as the hints.
-Vim.defineAction("newThread", startNewThread);
+Vim.defineAction("newThread", () => runCommand("chat.new"));
 Vim.mapCommand("<Space>n", "action", "newThread", {}, { context: "normal" });
 // Copying from the conversation works from the input box too, with or without the leader.
 Vim.defineAction("showWordHints", showWordHints);

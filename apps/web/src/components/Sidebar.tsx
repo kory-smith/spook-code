@@ -1110,26 +1110,27 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const chosenProjectGroups = scopeGroups.filter((project) =>
     chosenProjectScopeKeys.includes(project.projectKey),
   );
-  const chosenScopeProjectKeys =
-    chosenProjectGroups.length === 0
-      ? chosenEnvironmentScopeId === null
+  // An environment tab alone covers all its projects, including the scratch project behind
+  // threads without one.
+  const chosenProjectRefs =
+    chosenProjectGroups.length > 0
+      ? chosenProjectGroups.flatMap((group) => group.memberProjectRefs)
+      : chosenEnvironmentScopeId === null
         ? null
-        : new Set(
-            projects.flatMap((project) =>
-              project.environmentId === chosenEnvironmentScopeId
-                ? [`${project.environmentId}:${project.id}`]
-                : [],
-            ),
-          )
+        : projects.map((project) => ({
+            environmentId: project.environmentId,
+            projectId: project.id,
+          }));
+  const chosenScopeProjectKeys =
+    chosenProjectRefs === null
+      ? null
       : new Set(
-          chosenProjectGroups.flatMap((project) =>
-            project.memberProjectRefs.flatMap((projectRef) =>
-              chosenEnvironmentScopeId === null ||
-              projectRef.environmentId === chosenEnvironmentScopeId
-                ? [`${projectRef.environmentId}:${projectRef.projectId}`]
-                : [],
-            ),
-          ),
+          chosenProjectRefs
+            .filter(
+              ({ environmentId }) =>
+                chosenEnvironmentScopeId === null || environmentId === chosenEnvironmentScopeId,
+            )
+            .map(({ environmentId, projectId }) => `${environmentId}:${projectId}`),
         );
   const threads = useQuietThreadShells();
   const routeRowThreadKey =

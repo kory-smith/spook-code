@@ -1,4 +1,7 @@
+import { compareSemverVersions } from "@t3tools/shared/semver";
 import { useSyncExternalStore } from "react";
+
+import { APP_VERSION } from "./branding";
 
 // Fork builds check upstream for releases they do not contain yet; the update itself runs from
 // the fork's source checkout (scripts/fork-update).
@@ -10,24 +13,14 @@ let availableRelease: string | null = null;
 let timer: ReturnType<typeof setInterval> | undefined;
 const listeners = new Set<() => void>();
 
-/** Compares `vX.Y.Z` tags numerically. */
-export function isNewerRelease(candidate: string, base: string) {
-  const parts = (tag: string) => tag.replace(/^v/, "").split(".").map(Number);
-  const [next, current] = [parts(candidate), parts(base)];
-  for (let index = 0; index < Math.max(next.length, current.length); index++) {
-    const difference = (next[index] ?? 0) - (current[index] ?? 0);
-    if (difference !== 0) return difference > 0;
-  }
-  return false;
-}
-
 async function check() {
-  const base = await window.desktopBridge?.getForkBaseRelease?.();
-  if (!base) return;
+  // Only fork builds can update themselves.
+  if (!window.desktopBridge?.startForkUpdate) return;
   const response = await fetch(LATEST_RELEASE_URL).catch(() => null);
   if (!response?.ok) return;
   const { tag_name: latest } = (await response.json()) as { tag_name?: string };
-  const next = latest && isNewerRelease(latest, base) ? latest : null;
+  const next =
+    latest && compareSemverVersions(latest.replace(/^v/, ""), APP_VERSION) > 0 ? latest : null;
   if (next === availableRelease) return;
   availableRelease = next;
   for (const listener of listeners) listener();

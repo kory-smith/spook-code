@@ -1111,10 +1111,8 @@ export interface DesktopBridge {
   receiveProviderAuthCallback: (authorizationUrl: string) => Promise<string>;
   cancelProviderAuthCallback: (authorizationUrl: string) => Promise<void>;
   openExternal: (url: string) => Promise<boolean>;
-  /** Fork builds only: the newest upstream release they contain, such as `v0.1.7`. */
-  getForkBaseRelease?: () => Promise<string>;
-  /** Starts updating a fork build from its source checkout; false when the script cannot open. */
-  startForkUpdate?: () => Promise<boolean>;
+  /** Fork builds only: starts updating from the source checkout they were built from. */
+  startForkUpdate?: () => Promise<void>;
   /** Reads http(s) media in the main process, outside renderer CORS and CSP; null on network failure. */
   readMedia: (url: string) => Promise<DesktopMediaRead | null>;
   openSystemSettings: (pane: SystemSettingsPane) => Promise<boolean>;

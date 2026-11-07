@@ -1,10 +1,9 @@
-import { requestWorkspaceFocus } from "./lib/workspaceFocus";
+import { isWorkspaceElementVisible, requestWorkspaceFocus } from "./lib/workspaceFocus";
 
 // Ctrl-h/j/k/l move between areas by where they sit on screen, like Ctrl-w h/j/k/l between
 // vim windows. The terminal and browser panel keep Ctrl keys for their own programs.
 
 const CURRENT_THREAD_ROW = '[data-sidebar-row][aria-current="page"]';
-const MAIN_AREAS = ["composer", "conversation", "home", "pull-requests"];
 
 type Direction = "h" | "j" | "k" | "l";
 
@@ -21,9 +20,10 @@ const NEIGHBOURS: Readonly<Record<string, Partial<Record<Direction, readonly str
 };
 
 function isShown(area: string) {
-  if (area === "content") return MAIN_AREAS.some(isShown);
-  const element = document.querySelector(`[data-workspace-area="${area}"]`);
-  return element !== null && element.getClientRects().length > 0;
+  // The focus controller resolves "content" to whichever main area is open.
+  if (area === "content") return true;
+  const element = document.querySelector<HTMLElement>(`[data-workspace-area="${area}"]`);
+  return element !== null && isWorkspaceElementVisible(element);
 }
 
 /** Lands on the open thread, as tree plugins reveal the open file, or else the first row. */
@@ -39,16 +39,23 @@ function focusArea(area: string) {
   else requestWorkspaceFocus({ area });
 }
 
+/** Leaves the composer for the conversation, where the navigation keys work; `i` comes back. */
+export function leaveComposer() {
+  requestWorkspaceFocus({ area: "conversation" });
+  return true;
+}
+
 /** Returns whether the key was used. */
 export function handleAreaKey(event: KeyboardEvent) {
   if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return false;
-  const direction = event.key as Direction;
-  if (!"hjkl".includes(direction) || direction.length !== 1) return false;
+  if (!/^[hjkl]$/.test(event.key)) return false;
   const target = event.target instanceof Element ? event.target : null;
   if (target?.closest("[data-vim-ignore], [role='dialog'], [role='menu']")) return false;
   const from = target?.closest<HTMLElement>("[data-workspace-area]")?.dataset.workspaceArea;
-  const next = from ? NEIGHBOURS[from]?.[direction]?.find(isShown) : undefined;
+  const neighbours = from ? NEIGHBOURS[from] : undefined;
+  if (!neighbours) return false;
+  const next = neighbours[event.key as Direction]?.find(isShown);
   if (next) focusArea(next);
   // Inside an area the key is spent either way, so Ctrl-h never deletes a character.
-  return from !== undefined && NEIGHBOURS[from] !== undefined;
+  return true;
 }

@@ -32,7 +32,8 @@ for database in "$userdata"/*.sqlite; do
 done
 echo "Backed up the previous app and T3's databases to $backup"
 
-ditto "$built" "$app"
+# Same volume, so moving is instant; the next build starts from an empty release/ anyway.
+mv "$built" "$app"
 open "$app"
 echo "Installed and relaunched $(basename "$app")."
 

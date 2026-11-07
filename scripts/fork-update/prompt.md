@@ -1,6 +1,7 @@
-You are updating Kory's personal fork of T3 Code, in this checkout, to upstream's latest release.
-Merge it if that goes cleanly; otherwise stop and explain. Kory clicked "Update fork" in the app
-and is watching this terminal window.
+You are updating Kory's personal fork of T3 Code, in this checkout, to upstream's latest release,
+{{RELEASE}}, which `custom` does not contain yet (its tag is already fetched). Merge it if that goes
+cleanly; otherwise stop and explain. Kory clicked "Update fork" in the app and is watching this
+terminal window.
 
 ## The fork
 
@@ -16,12 +17,10 @@ Stop at the first failure, explain it, and leave the checkout as it was (`git me
 merge is in progress). Never resolve conflicts, edit files, or run commands beyond these.
 
 1. `git status` must show a clean `custom`. If not, stop.
-2. `git fetch origin --tags`, then `gh release view --repo pingdotgg/t3code --json tagName,name,body`
-   for the latest release. If `git merge-base --is-ancestor <tag> custom` succeeds, it is already
-   merged: say so and stop.
+2. Read the release notes: `gh release view {{RELEASE}} --repo pingdotgg/t3code --json name,body`.
 3. `gh pr view 31242 --repo pingdotgg/t3code --json state,mergedAt` and the same for 29686. If
    either merged or closed upstream, mention it: the merge below may conflict around that work.
-4. `git merge --no-commit --no-ff <tag>`. If it reports conflicts, list each conflicted file with
+4. `git merge --no-commit --no-ff {{RELEASE}}`. If it reports conflicts, list each conflicted file with
    one line on what upstream changed and what the fork changed there, then abort and stop.
 5. `vp i`, then `vp run check:changed`. If checks fail, report the failures, abort, and stop.
 6. `scripts/fork-update/build.sh`. If the build fails, report the error, abort, and stop.

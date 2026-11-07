@@ -5,7 +5,6 @@ export const PICK_THEME_FILES_CHANNEL = "desktop:pick-theme-files";
 export const SET_THEME_CHANNEL = "desktop:set-theme";
 export const CONTEXT_MENU_CHANNEL = "desktop:context-menu";
 export const OPEN_EXTERNAL_CHANNEL = "desktop:open-external";
-export const FORK_BASE_RELEASE_CHANNEL = "desktop:fork-base-release";
 export const START_FORK_UPDATE_CHANNEL = "desktop:start-fork-update";
 export const READ_MEDIA_CHANNEL = "desktop:read-media";
 export const OPEN_SYSTEM_SETTINGS_CHANNEL = "desktop:open-system-settings";

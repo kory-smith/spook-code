@@ -1,13 +1,14 @@
-import { showHints, type HintTarget } from "./vim-hints";
+import { writeTextToClipboard } from "./hooks/useCopyToClipboard";
+import { elementHints, isUncovered, showHints, type HintTarget } from "./vim-hints";
 
 // Surfingkeys-style copying from the conversation: `zv` hints words and starts a visual
 // selection at the picked one; `yv` hints blocks and copies the picked block's text.
 
 const CONVERSATION = '[data-workspace-area="conversation"]';
-// Screen-reader labels, such as each message's author, have a box but no visible text.
-const UNSEEN = '[aria-hidden="true"], [hidden], .sr-only';
 const BLOCKS =
   "[data-message-id] :is(p, pre, li:not(:has(p)), blockquote:not(:has(p)), h1, h2, h3, h4, h5, h6, table)";
+// Two-key labels run out here.
+const MAX_HINTS = 29 * 29;
 const MOTIONS: Readonly<Record<string, readonly [direction: string, granularity: string]>> = {
   h: ["backward", "character"],
   l: ["forward", "character"],
@@ -23,30 +24,13 @@ const MOTIONS: Readonly<Record<string, readonly [direction: string, granularity:
 const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
 let selecting = false;
 
-/** Hover-only details, such as message timestamps, sit at zero opacity until hovered. */
-function isShown(element: Element) {
-  return (
-    !element.closest(UNSEEN) &&
-    element.checkVisibility({ opacityProperty: true, visibilityProperty: true })
-  );
+/** Hover-only details, such as message timestamps, are hit-testable at zero opacity. */
+function isOpaque(element: Element) {
+  return element.checkVisibility({ opacityProperty: true, visibilityProperty: true });
 }
 
-function overlaps(a: DOMRect, b: DOMRect) {
-  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-}
-
-/** The visible part of the conversation; the input box floats over its bottom. */
-function visibleConversation() {
-  const area = document.querySelector<HTMLElement>(CONVERSATION);
-  if (!area) return null;
-  const bounds = area.getBoundingClientRect();
-  const composer = document.querySelector("[data-chat-composer-surface]")?.getBoundingClientRect();
-  const isVisible = (rect: DOMRect) =>
-    rect.width > 0 &&
-    rect.top >= bounds.top &&
-    rect.bottom <= bounds.bottom &&
-    !(composer && overlaps(rect, composer));
-  return { area, bounds, isVisible };
+function copy(text: string) {
+  void writeTextToClipboard(text, "selection").catch(() => {});
 }
 
 function startVisual(node: Text, offset: number) {
@@ -55,31 +39,32 @@ function startVisual(node: Text, offset: number) {
 }
 
 export function showWordHints() {
-  const conversation = visibleConversation();
-  if (!conversation) return;
-  const { area, bounds, isVisible } = conversation;
+  const area = document.querySelector(CONVERSATION);
+  if (!area) return;
   const walker = document.createTreeWalker(area, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   const targets: HintTarget[] = [];
-  for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
-    const parent = node.parentElement;
-    if (!parent || !isShown(parent)) continue;
-    if (!overlaps(parent.getBoundingClientRect(), bounds)) continue;
-    for (const { index, isWordLike } of segmenter.segment(node.data)) {
+  for (let node = walker.nextNode(); node && targets.length < MAX_HINTS; node = walker.nextNode()) {
+    const text = node as Text;
+    const parent = text.parentElement;
+    if (!parent || !isOpaque(parent)) continue;
+    const box = parent.getBoundingClientRect();
+    if (box.bottom < 0 || box.top > innerHeight) continue;
+    for (const { index, isWordLike } of segmenter.segment(text.data)) {
       if (!isWordLike) continue;
-      range.setStart(node, index);
-      range.setEnd(node, index + 1);
+      range.setStart(text, index);
+      range.setEnd(text, index + 1);
       const rect = range.getBoundingClientRect();
-      if (!isVisible(rect)) continue;
-      const textNode = node;
-      targets.push({ left: rect.left, top: rect.top, pick: () => startVisual(textNode, index) });
+      // Hit-testing also rules out screen-reader-only text and words under the input box.
+      if (!isUncovered(parent, rect)) continue;
+      targets.push({ left: rect.left, top: rect.top, pick: () => startVisual(text, index) });
     }
   }
   showHints(targets);
 }
 
 function copyBlock(block: HTMLElement) {
-  void navigator.clipboard.writeText(block.innerText);
+  copy(block.innerText);
   // Selecting the block for a moment shows what was copied.
   const selection = getSelection();
   selection?.selectAllChildren(block);
@@ -87,17 +72,10 @@ function copyBlock(block: HTMLElement) {
 }
 
 export function showBlockHints() {
-  const conversation = visibleConversation();
-  if (!conversation) return;
-  const blocks = [...conversation.area.querySelectorAll<HTMLElement>(BLOCKS)];
-  showHints(
-    blocks
-      .filter((block) => isShown(block) && conversation.isVisible(block.getBoundingClientRect()))
-      .map((block) => {
-        const { left, top } = block.getBoundingClientRect();
-        return { left, top, pick: () => copyBlock(block) };
-      }),
-  );
+  const area = document.querySelector(CONVERSATION);
+  if (!area) return;
+  const blocks = [...area.querySelectorAll<HTMLElement>(BLOCKS)].filter(isOpaque);
+  showHints(elementHints(blocks, copyBlock));
 }
 
 /** Returns whether the key was used. While a selection is open, plain keys belong to it. */
@@ -111,9 +89,10 @@ export function handleTextVisualKey(event: KeyboardEvent) {
   }
   if (event.metaKey || event.ctrlKey || event.altKey) return false;
   if (event.key === "Escape" || event.key === "y") {
-    if (event.key === "y") void navigator.clipboard.writeText(selection.toString());
+    const text = selection.toString();
     selection.removeAllRanges();
     selecting = false;
+    if (event.key === "y") copy(text);
     return true;
   }
   if (event.key === "o") {

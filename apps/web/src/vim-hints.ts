@@ -12,7 +12,7 @@ export interface HintTarget {
 
 interface Hint {
   readonly label: string;
-  readonly target: HintTarget;
+  readonly pick: () => void;
   readonly element: HTMLElement;
 }
 
@@ -27,13 +27,28 @@ export function hintLabels(count: number): ReadonlyArray<string> {
   return keys.flatMap((first) => keys.map((second) => first + second)).slice(0, count);
 }
 
-function isOnScreen(target: HTMLElement) {
-  const { top, left, right, bottom } = target.getBoundingClientRect();
+/** Whether a box is on screen and its centre is not covered by something else. */
+export function isUncovered(owner: Element, { top, left, right, bottom }: DOMRect) {
   if (right <= left || bottom <= top) return false;
   if (bottom < 0 || right < 0 || top > innerHeight || left > innerWidth) return false;
   const x = Math.min(Math.max((left + right) / 2, 0), innerWidth - 1);
   const y = Math.min(Math.max((top + bottom) / 2, 0), innerHeight - 1);
-  return target.contains(document.elementFromPoint(x, y));
+  return owner.contains(document.elementFromPoint(x, y));
+}
+
+/** Hints for the uncovered elements, each measured once. */
+export function elementHints(
+  elements: Iterable<HTMLElement>,
+  pick: (element: HTMLElement) => void,
+): HintTarget[] {
+  const targets: HintTarget[] = [];
+  for (const element of elements) {
+    const rect = element.getBoundingClientRect();
+    if (isUncovered(element, rect)) {
+      targets.push({ left: rect.left, top: rect.top, pick: () => pick(element) });
+    }
+  }
+  return targets;
 }
 
 function close() {
@@ -55,17 +70,16 @@ export function showHints(targets: ReadonlyArray<HintTarget>) {
   if (targets.length === 0) return;
   overlay = document.createElement("div");
   overlay.className = "pointer-events-none fixed inset-0 z-[9999]";
-  const labels = hintLabels(targets.length);
-  hints = labels.map((label, index) => {
-    const target = targets[index]!;
+  hints = hintLabels(targets.length).map((label, index) => {
+    const { left, top, pick } = targets[index]!;
     const element = document.createElement("span");
     element.className =
       "absolute rounded-sm bg-ring px-1 font-mono text-xs font-semibold text-black uppercase shadow-sm";
-    element.style.left = `${Math.max(target.left, 0)}px`;
-    element.style.top = `${Math.max(target.top, 0)}px`;
+    element.style.left = `${Math.max(left, 0)}px`;
+    element.style.top = `${Math.max(top, 0)}px`;
     element.textContent = label;
     overlay!.append(element);
-    return { label, target, element };
+    return { label, pick, element };
   });
   document.body.append(overlay);
   window.addEventListener("blur", close);
@@ -83,42 +97,30 @@ function openLink(target: HTMLElement) {
 }
 
 export function showLinkHints() {
-  const links = [...document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`)];
   showHints(
-    links.filter(isOnScreen).map((link) => {
-      const { left, top } = link.getBoundingClientRect();
-      return { left, top, pick: () => openLink(link) };
-    }),
+    elementHints(document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`), openLink),
   );
 }
 
 /** Returns whether the key was used. While hints show, every key belongs to them. */
 export function handleHintKey(event: KeyboardEvent) {
   if (!overlay) return false;
+  if (event.key === "Escape") {
+    close();
+    return true;
+  }
   if (event.key === "Backspace") {
     typed = typed.slice(0, -1);
     render();
     return true;
   }
-  if (event.key === "Escape") {
-    close();
-    return true;
-  }
   // Modifier and function keys arrive with long names and are not hint letters.
   if ([...event.key].length !== 1) return true;
-  const next = typed + event.key.toLowerCase();
-  const matches = hints.filter((hint) => hint.label.startsWith(next));
-  if (matches.length === 0) {
-    close();
-    return true;
-  }
-  typed = next;
-  const [match] = matches;
-  if (matches.length === 1 && match!.label === next) {
-    close();
-    match!.target.pick();
-    return true;
-  }
-  render();
+  typed += event.key.toLowerCase();
+  // Labels share one length, so an exact match is never the prefix of another.
+  const match = hints.find((hint) => hint.label === typed);
+  if (match || !hints.some((hint) => hint.label.startsWith(typed))) close();
+  if (match) match.pick();
+  else render();
   return true;
 }

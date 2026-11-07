@@ -777,10 +777,10 @@ export const make = Effect.gen(function* () {
       developmentLoadRetryIndex = 0;
       window.setTitle(environment.displayName);
       if (environment.platform === "darwin") syncMacosWindowButtons(window);
-      // Chromium's CSS AccentColor ignores the OS setting, so hand the renderer the real one.
+      // Chromium's CSS AccentColor ignores the OS setting, so focus rings take the real one.
       if (environment.platform !== "linux") {
         const accent = Electron.systemPreferences.getAccentColor();
-        void window.webContents.insertCSS(`:root { --system-accent: #${accent}; }`);
+        void window.webContents.insertCSS(`:root { --ring: #${accent} !important; }`);
       }
     });
     window.webContents.on(

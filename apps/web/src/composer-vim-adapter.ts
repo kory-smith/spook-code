@@ -28,7 +28,7 @@ import {
   splitOrLiftListItem,
 } from "~/composer-rich-text-doc";
 import { createVimController, INDENT, Pos, Vim, VimEditor, vimTextHooks } from "./vim-engine";
-import { leaveComposer } from "./vim-navigation";
+import { leaveComposer } from "./vim-areas";
 
 const LIST_ITEM_NODES = new Set(["listItem", "taskItem"]);
 const RICH_REGISTER_LIMIT = 32;
