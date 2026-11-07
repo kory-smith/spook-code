@@ -92,6 +92,8 @@ export const make = Effect.gen(function* () {
   const configure = Effect.gen(function* () {
     const commitHash = yield* resolveAboutCommitHash;
     // Electron strips spaces but keeps parentheses in its User-Agent token, breaking Turnstile in preview sessions.
+    // Fork: deliberately derived from displayName so the app is plain "Spook Code"; keep it. The
+    // keychain entry holding saved environment credentials is named after it.
     yield* electronApp.setName(environment.displayName.replace(/[()]/g, ""));
     yield* electronApp.setAboutPanelOptions({
       applicationName: environment.displayName,
