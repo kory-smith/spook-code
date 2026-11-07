@@ -251,7 +251,7 @@ import {
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { SidebarEnvironmentScopeMenu } from "./sidebar/SidebarEnvironmentScopeMenu";
+import { SidebarEnvironmentTabs } from "./sidebar/SidebarEnvironmentTabs";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import { composerDraftHasUserContent, DraftId, useComposerDraftStore } from "../composerDraftStore";
@@ -1082,15 +1082,18 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     setPersistedProjectScopeKeys(keys);
     scrollSidebarToTop(sidebarContentRef.current);
   };
-  const setEnvironmentScopeId = (environmentId: EnvironmentId | null) => {
+  const setEnvironmentScopeId = (environmentId: EnvironmentId) => {
     clearSelection();
     setPersistedEnvironmentScopeId(environmentId);
     scrollSidebarToTop(sidebarContentRef.current);
   };
-  // Like a missing project, an environment that is gone reads as all environments.
+  // Environments are tabs, so once a second one exists exactly one is always chosen.
   const chosenEnvironmentScopeId =
-    environments.find((environment) => environment.environmentId === persistedEnvironmentScopeId)
-      ?.environmentId ?? null;
+    environments.length < 2
+      ? null
+      : (environments.find(
+          (environment) => environment.environmentId === persistedEnvironmentScopeId,
+        )?.environmentId ?? primaryEnvironmentId);
   // A scope whose project is gone reads as all projects once every snapshot has
   // loaded. The stored keys are left alone, so the scope returns with its project.
   // An archived project's scope reads as all projects, matching the menu.
@@ -1108,17 +1111,24 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     chosenProjectScopeKeys.includes(project.projectKey),
   );
   const chosenScopeProjectKeys =
-    chosenProjectGroups.length === 0 && chosenEnvironmentScopeId === null
-      ? null
+    chosenProjectGroups.length === 0
+      ? chosenEnvironmentScopeId === null
+        ? null
+        : new Set(
+            projects.flatMap((project) =>
+              project.environmentId === chosenEnvironmentScopeId
+                ? [`${project.environmentId}:${project.id}`]
+                : [],
+            ),
+          )
       : new Set(
-          (chosenProjectGroups.length === 0 ? projectGroups : chosenProjectGroups).flatMap(
-            (project) =>
-              project.memberProjectRefs.flatMap((projectRef) =>
-                chosenEnvironmentScopeId === null ||
-                projectRef.environmentId === chosenEnvironmentScopeId
-                  ? [`${projectRef.environmentId}:${projectRef.projectId}`]
-                  : [],
-              ),
+          chosenProjectGroups.flatMap((project) =>
+            project.memberProjectRefs.flatMap((projectRef) =>
+              chosenEnvironmentScopeId === null ||
+              projectRef.environmentId === chosenEnvironmentScopeId
+                ? [`${projectRef.environmentId}:${projectRef.projectId}`]
+                : [],
+            ),
           ),
         );
   const threads = useQuietThreadShells();
@@ -1150,7 +1160,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     findThread: (key) => threads.find((candidate) => threadShellKey(candidate) === key),
   });
   const projectScopeKeys = revealWidensScope ? [] : chosenProjectScopeKeys;
-  const environmentScopeId = revealWidensScope ? null : chosenEnvironmentScopeId;
+  const environmentScopeId = revealWidensScope
+    ? (routeThreadRef?.environmentId ?? chosenEnvironmentScopeId)
+    : chosenEnvironmentScopeId;
   const projectScopeKey =
     projectScopeKeys.length === 0 && environmentScopeId === null
       ? null
@@ -1170,10 +1182,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     if (!revealWidensScope) return;
     clearSelection();
     setPersistedProjectScopeKeys([]);
-    setPersistedEnvironmentScopeId(null);
+    setPersistedEnvironmentScopeId(routeThreadRef?.environmentId ?? null);
   }, [
     clearSelection,
     revealWidensScope,
+    routeThreadRef?.environmentId,
     setPersistedProjectScopeKeys,
     setPersistedEnvironmentScopeId,
   ]);
@@ -3029,18 +3042,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         className="min-h-full"
         fixedHeader={
           <SidebarGroup className="z-[1]">
+            {environments.length > 1 ? (
+              <SidebarEnvironmentTabs
+                environments={environments}
+                primaryEnvironmentId={primaryEnvironmentId}
+                selectedEnvironmentId={environmentScopeId}
+                onChange={setEnvironmentScopeId}
+              />
+            ) : null}
             <SidebarThreadHeader
               hasProjects={projectGroups.length > 0}
-              environmentScope={
-                environments.length > 1 ? (
-                  <SidebarEnvironmentScopeMenu
-                    environments={environments}
-                    selectedEnvironmentId={environmentScopeId}
-                    machineByEnvironmentId={environmentMachineById}
-                    onChange={setEnvironmentScopeId}
-                  />
-                ) : null
-              }
               projectScope={
                 <Combobox
                   items={projectScopeItems}
