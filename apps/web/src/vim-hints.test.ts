@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { hintLabels } from "./vim-link-hints";
+import { hintLabels } from "./vim-hints";
 
 describe("hintLabels", () => {
   it("uses one key per link while they fit", () => {

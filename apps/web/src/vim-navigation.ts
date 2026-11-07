@@ -11,8 +11,9 @@ import { isMacPlatform } from "./lib/utils";
 import { requestWorkspaceFocus } from "./lib/workspaceFocus";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
-import { showLinkHints } from "./vim-link-hints";
+import { showLinkHints } from "./vim-hints";
 import { handleSidebarKey } from "./vim-sidebar";
+import { showBlockHints, showWordHints } from "./vim-text";
 
 const SEQUENCE_TIMEOUT = 1000;
 const LINE_SCROLL = 60;
@@ -143,8 +144,8 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
 
   const sequence = Date.now() - pendingAt < SEQUENCE_TIMEOUT ? pending + event.key : event.key;
   pending = "";
-  if (sequence === "g") {
-    pending = "g";
+  if (sequence === "g" || sequence === "z" || sequence === "y") {
+    pending = sequence;
     pendingAt = Date.now();
     return true;
   }
@@ -178,6 +179,12 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
       return true;
     case "f":
       showLinkHints();
+      return true;
+    case "zv":
+      showWordHints();
+      return true;
+    case "yv":
+      showBlockHints();
       return true;
     default:
   }

@@ -4,10 +4,15 @@ import { OPENABLE_ROW, openSidebarRow } from "./vim-sidebar";
 // Same order as the labels in Kory's VS Code easymotion setup.
 const HINT_KEYS = "hklyuiopnm,qwertzxcvbasdgj;'";
 
+export interface HintTarget {
+  readonly left: number;
+  readonly top: number;
+  readonly pick: () => void;
+}
+
 interface Hint {
   readonly label: string;
-  /** A link, or a sidebar row that opens a thread. */
-  readonly target: HTMLElement;
+  readonly target: HintTarget;
   readonly element: HTMLElement;
 }
 
@@ -40,38 +45,24 @@ function close() {
   window.removeEventListener("resize", close);
 }
 
-function open(target: HTMLElement) {
-  if (target instanceof HTMLAnchorElement && /^https?:/.test(target.href)) {
-    void ensureLocalApi().shell.openExternal(target.href);
-  } else if (target.matches(OPENABLE_ROW)) {
-    openSidebarRow(target, false);
-  } else {
-    target.click();
-  }
-}
-
 function render() {
   for (const hint of hints) hint.element.hidden = !hint.label.startsWith(typed);
 }
 
-export function showLinkHints() {
+/** Labels each target; typing a label picks it. Extra targets past the two-key labels are dropped. */
+export function showHints(targets: ReadonlyArray<HintTarget>) {
   close();
-  const targets = [...document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`)].filter(
-    isOnScreen,
-  );
   if (targets.length === 0) return;
-
   overlay = document.createElement("div");
   overlay.className = "pointer-events-none fixed inset-0 z-[9999]";
   const labels = hintLabels(targets.length);
-  hints = targets.map((target, index) => {
-    const label = labels[index]!;
-    const { left, top } = target.getBoundingClientRect();
+  hints = labels.map((label, index) => {
+    const target = targets[index]!;
     const element = document.createElement("span");
     element.className =
       "absolute rounded-sm bg-ring px-1 font-mono text-xs font-semibold text-black uppercase shadow-sm";
-    element.style.left = `${Math.max(left, 0)}px`;
-    element.style.top = `${Math.max(top, 0)}px`;
+    element.style.left = `${Math.max(target.left, 0)}px`;
+    element.style.top = `${Math.max(target.top, 0)}px`;
     element.textContent = label;
     overlay!.append(element);
     return { label, target, element };
@@ -81,8 +72,28 @@ export function showLinkHints() {
   window.addEventListener("resize", close);
 }
 
+function openLink(target: HTMLElement) {
+  if (target instanceof HTMLAnchorElement && /^https?:/.test(target.href)) {
+    void ensureLocalApi().shell.openExternal(target.href);
+  } else if (target.matches(OPENABLE_ROW)) {
+    openSidebarRow(target, false);
+  } else {
+    target.click();
+  }
+}
+
+export function showLinkHints() {
+  const links = [...document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`)];
+  showHints(
+    links.filter(isOnScreen).map((link) => {
+      const { left, top } = link.getBoundingClientRect();
+      return { left, top, pick: () => openLink(link) };
+    }),
+  );
+}
+
 /** Returns whether the key was used. While hints show, every key belongs to them. */
-export function handleLinkHintKey(event: KeyboardEvent) {
+export function handleHintKey(event: KeyboardEvent) {
   if (!overlay) return false;
   if (event.key === "Backspace") {
     typed = typed.slice(0, -1);
@@ -105,7 +116,7 @@ export function handleLinkHintKey(event: KeyboardEvent) {
   const [match] = matches;
   if (matches.length === 1 && match!.label === next) {
     close();
-    open(match!.target);
+    match!.target.pick();
     return true;
   }
   render();
