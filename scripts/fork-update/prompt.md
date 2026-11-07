@@ -6,7 +6,7 @@ terminal window.
 ## The fork
 
 - Branch `custom`. Upstream (pingdotgg/t3code) is the `origin` remote; Kory's public fork
-  (kory-smith/t3code) is `kory`.
+  (kory-smith/spook-code) is `kory`.
 - `custom` is upstream `main` plus two merged upstream PRs that were open when the fork was made,
   #31242 (vim mode) and #29686 (sidebar environment filter), plus Kory's own commits on top.
   `git log --oneline --no-merges origin/main..custom` lists them.
