@@ -42,21 +42,23 @@ export function openSidebarRow(row: HTMLElement, stay: boolean) {
   window.addEventListener("pointerdown", stop, true);
 }
 
-/** Returns whether there were tabs to switch. */
+/**
+ * Switches environment tab and focuses the sidebar there, ready to pick a thread.
+ * Returns whether there were tabs to switch.
+ */
 function switchEnvironmentTab(step: 1 | -1) {
   const tabs = [...document.querySelectorAll<HTMLElement>(`${SIDEBAR} [role="tab"]`)];
   if (tabs.length < 2) return false;
-  const inSidebar = document.activeElement?.closest(SIDEBAR) != null;
   const current = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
   tabs[(current + step + tabs.length) % tabs.length]!.click();
-  // The focused row may belong to the other environment, so land again once the tab renders.
-  if (inSidebar) requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
+  // Focus once the new tab's rows render, landing on its open thread as Ctrl-h does.
+  requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
   return true;
 }
 
 /**
  * The previous/next thread shortcuts (Cmd-Shift-[ and ] by default, like browser tabs) switch
- * environment tabs instead while there are tabs, leaving focus where it is.
+ * environment tabs instead while there are tabs, and move focus to the sidebar.
  */
 export function handleEnvironmentTabShortcut(event: KeyboardEvent) {
   if (!event.metaKey && !event.ctrlKey) return false;
