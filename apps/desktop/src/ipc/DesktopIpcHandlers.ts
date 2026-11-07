@@ -32,6 +32,7 @@ import {
   installUpdate,
   setUpdateChannel,
 } from "./methods/updates.ts";
+import { getForkBaseRelease, startForkUpdate } from "./methods/forkUpdate.ts";
 import {
   getAppBranding,
   getLocalEnvironmentBootstraps,
@@ -142,6 +143,8 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(setTheme);
   yield* ipc.handle(showContextMenu);
   yield* ipc.handle(openExternal);
+  yield* ipc.handle(getForkBaseRelease);
+  yield* ipc.handle(startForkUpdate);
   yield* ipc.handle(readMedia);
   yield* ipc.handle(receiveProviderAuthCallback);
   yield* ipc.handle(cancelProviderAuthCallback);

@@ -203,6 +203,8 @@ contextBridge.exposeInMainWorld("desktopBridge", {
   cancelProviderAuthCallback: (url: string) =>
     ipcRenderer.invoke(IpcChannels.CANCEL_PROVIDER_AUTH_CALLBACK_CHANNEL, url),
   openExternal: (url: string) => ipcRenderer.invoke(IpcChannels.OPEN_EXTERNAL_CHANNEL, url),
+  getForkBaseRelease: () => ipcRenderer.invoke(IpcChannels.FORK_BASE_RELEASE_CHANNEL, undefined),
+  startForkUpdate: () => ipcRenderer.invoke(IpcChannels.START_FORK_UPDATE_CHANNEL, undefined),
   readMedia: (url: string) => ipcRenderer.invoke(IpcChannels.READ_MEDIA_CHANNEL, url),
   checkSystemPermission: (pane: string) =>
     ipcRenderer.invoke(IpcChannels.CHECK_SYSTEM_PERMISSION_CHANNEL, pane),

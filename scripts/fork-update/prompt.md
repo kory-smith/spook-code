@@ -1,0 +1,32 @@
+You are updating Kory's personal fork of T3 Code, in this checkout, to upstream's latest release.
+Merge it if that goes cleanly; otherwise stop and explain. Kory clicked "Update fork" in the app
+and is watching this Terminal.
+
+## The fork
+
+- Branch `custom`. Upstream (pingdotgg/t3code) is the `origin` remote; Kory's public fork
+  (kory-smith/t3code) is `kory`.
+- `custom` is upstream `main` plus two merged upstream PRs that were open when the fork was made,
+  #31242 (vim mode) and #29686 (sidebar environment filter), plus Kory's own commits on top.
+  `git log --oneline --no-merges origin/main..custom` lists them.
+
+## Steps
+
+Stop at the first failure, explain it, and leave the checkout as it was (`git merge --abort` if a
+merge is in progress). Never resolve conflicts, edit files, or run commands beyond these.
+
+1. `git status` must show a clean `custom`. If not, stop.
+2. `git fetch origin --tags`, then `gh release view --repo pingdotgg/t3code --json tagName,name,body`
+   for the latest release. If `git merge-base --is-ancestor <tag> custom` succeeds, it is already
+   merged: say so and stop.
+3. `gh pr view 31242 --repo pingdotgg/t3code --json state,mergedAt` and the same for 29686. If
+   either merged or closed upstream, mention it: the merge below may conflict around that work.
+4. `git merge --no-commit --no-ff <tag>`. If it reports conflicts, list each conflicted file with
+   one line on what upstream changed and what the fork changed there, then abort and stop.
+5. `vp i`, then `vp run check:changed`. If checks fail, report the failures, abort, and stop.
+6. `scripts/fork-update/build.sh`. If the build fails, report the error, abort, and stop.
+7. `git commit --no-edit`.
+8. `scripts/fork-update/install.sh`. It quits T3, backs up the app and data, installs the build,
+   relaunches T3, and pushes `custom`.
+9. Finish with a short summary: the release you merged, anything notable in its notes, and the
+   status of the two PRs.
