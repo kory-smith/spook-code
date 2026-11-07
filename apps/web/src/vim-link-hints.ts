@@ -1,11 +1,13 @@
 import { ensureLocalApi } from "./localApi";
+import { OPENABLE_ROW, openSidebarRow } from "./vim-sidebar";
 
 // Same order as the labels in Kory's VS Code easymotion setup.
 const HINT_KEYS = "hklyuiopnm,qwertzxcvbasdgj;'";
 
 interface Hint {
   readonly label: string;
-  readonly link: HTMLAnchorElement;
+  /** A link, or a sidebar row that opens a thread. */
+  readonly target: HTMLElement;
   readonly element: HTMLElement;
 }
 
@@ -20,13 +22,13 @@ export function hintLabels(count: number): ReadonlyArray<string> {
   return keys.flatMap((first) => keys.map((second) => first + second)).slice(0, count);
 }
 
-function isOnScreen(link: HTMLAnchorElement) {
-  const { top, left, right, bottom } = link.getBoundingClientRect();
+function isOnScreen(target: HTMLElement) {
+  const { top, left, right, bottom } = target.getBoundingClientRect();
   if (right <= left || bottom <= top) return false;
   if (bottom < 0 || right < 0 || top > innerHeight || left > innerWidth) return false;
   const x = Math.min(Math.max((left + right) / 2, 0), innerWidth - 1);
   const y = Math.min(Math.max((top + bottom) / 2, 0), innerHeight - 1);
-  return link.contains(document.elementFromPoint(x, y));
+  return target.contains(document.elementFromPoint(x, y));
 }
 
 function close() {
@@ -38,9 +40,14 @@ function close() {
   window.removeEventListener("resize", close);
 }
 
-function open(link: HTMLAnchorElement) {
-  if (/^https?:/.test(link.href)) void ensureLocalApi().shell.openExternal(link.href);
-  else link.click();
+function open(target: HTMLElement) {
+  if (target instanceof HTMLAnchorElement && /^https?:/.test(target.href)) {
+    void ensureLocalApi().shell.openExternal(target.href);
+  } else if (target.matches(OPENABLE_ROW)) {
+    openSidebarRow(target, false);
+  } else {
+    target.click();
+  }
 }
 
 function render() {
@@ -49,15 +56,17 @@ function render() {
 
 export function showLinkHints() {
   close();
-  const links = [...document.querySelectorAll<HTMLAnchorElement>("a[href]")].filter(isOnScreen);
-  if (links.length === 0) return;
+  const targets = [...document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`)].filter(
+    isOnScreen,
+  );
+  if (targets.length === 0) return;
 
   overlay = document.createElement("div");
   overlay.className = "pointer-events-none fixed inset-0 z-[9999]";
-  const labels = hintLabels(links.length);
-  hints = links.map((link, index) => {
+  const labels = hintLabels(targets.length);
+  hints = targets.map((target, index) => {
     const label = labels[index]!;
-    const { left, top } = link.getBoundingClientRect();
+    const { left, top } = target.getBoundingClientRect();
     const element = document.createElement("span");
     element.className =
       "absolute rounded-sm bg-primary px-1 font-mono text-xs font-semibold text-primary-foreground uppercase shadow-sm";
@@ -65,7 +74,7 @@ export function showLinkHints() {
     element.style.top = `${Math.max(top, 0)}px`;
     element.textContent = label;
     overlay!.append(element);
-    return { label, link, element };
+    return { label, target, element };
   });
   document.body.append(overlay);
   window.addEventListener("blur", close);
@@ -96,7 +105,7 @@ export function handleLinkHintKey(event: KeyboardEvent) {
   const [match] = matches;
   if (matches.length === 1 && match!.label === next) {
     close();
-    open(match!.link);
+    open(match!.target);
     return true;
   }
   render();

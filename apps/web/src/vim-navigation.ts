@@ -12,6 +12,7 @@ import { requestWorkspaceFocus } from "./lib/workspaceFocus";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
 import { showLinkHints } from "./vim-link-hints";
+import { handleSidebarKey } from "./vim-sidebar";
 
 const SEQUENCE_TIMEOUT = 1000;
 const LINE_SCROLL = 60;
@@ -114,12 +115,18 @@ export function leaveComposer() {
 /** Returns whether the key was used. Editable targets belong to their own vim mode. */
 export function handleVimNavigationKey(event: KeyboardEvent) {
   if (!event.isTrusted || event.defaultPrevented || event.isComposing) return false;
-  if (event.metaKey || event.ctrlKey || event.altKey || [...event.key].length !== 1) return false;
+  if (event.metaKey || event.ctrlKey || event.altKey) return false;
   const target = event.target;
   if (!(target instanceof Element) || target.closest(TYPE_TO_FOCUS_EDITABLE_SELECTOR)) return false;
-  if (isSurfaceLauncherKey(event)) return false;
-
   const active = document.activeElement;
+  if (event.key === "Enter") return handleSidebarKey("Enter", active);
+  if ([...event.key].length !== 1 || isSurfaceLauncherKey(event)) return false;
+  // Opening a thread with `l` comes before `l` stepping into a folder, which only folders use.
+  if (handleSidebarKey(event.key, active)) {
+    pending = "";
+    return true;
+  }
+
   const list = active?.closest(LIST_SELECTOR);
   const arrow = LIST_ARROWS[event.key];
   if (active && list && arrow) {
@@ -134,6 +141,11 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
   if (sequence === "g") {
     pending = "g";
     pendingAt = Date.now();
+    return true;
+  }
+  if (handleSidebarKey(sequence, active)) return true;
+  if (list && (sequence === "gg" || sequence === "G")) {
+    pressArrow(active!, sequence === "G" ? "End" : "Home");
     return true;
   }
   const scroller = activeScroller();
