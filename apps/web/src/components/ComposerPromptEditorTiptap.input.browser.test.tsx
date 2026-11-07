@@ -848,10 +848,10 @@ describe("vim mode", () => {
     await userEvent.keyboard("{Escape}");
     await expect.element(screen.getByRole("status")).toHaveTextContent("NORMAL");
     expect(dom.classList.contains("caret-transparent")).toBe(true);
-    expect(dom.querySelector("span.bg-foreground")).not.toBeNull();
+    expect(dom.querySelector("span.vim-cursor")).not.toBeNull();
     await userEvent.keyboard("i");
     expect(dom.classList.contains("caret-transparent")).toBe(false);
-    expect(dom.querySelector("span.bg-foreground")).toBeNull();
+    expect(dom.querySelector("span.vim-cursor")).toBeNull();
   });
 
   it("shows visual modes and acts on the selection", async () => {

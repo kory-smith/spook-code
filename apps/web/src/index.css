@@ -2576,6 +2576,24 @@ code {
   outline-offset: -2px;
 }
 
+/* The normal-mode block cursor blinks like the native caret it replaces. */
+@keyframes vim-cursor-blink {
+  50% {
+    background-color: transparent;
+    color: inherit;
+  }
+}
+
+.vim-cursor {
+  animation: vim-cursor-blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vim-cursor {
+    animation: none;
+  }
+}
+
 /* The composer's area is an overlay covering the whole chat, so its outline goes on the input box. */
 [data-workspace-area="composer"]:focus-within {
   outline: none;

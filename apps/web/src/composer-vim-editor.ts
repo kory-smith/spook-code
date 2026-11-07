@@ -136,7 +136,7 @@ function searchDecorations(state: EditorState, query: RegExp): Decoration[] {
 function emptyLineCursor() {
   const block = document.createElement("span");
   block.className =
-    "pointer-events-none inline-block h-[1.2em] w-[0.6em] rounded-[1px] bg-foreground align-text-bottom";
+    "vim-cursor pointer-events-none inline-block h-[1.2em] w-[0.6em] rounded-[1px] bg-foreground align-text-bottom";
   return block;
 }
 
@@ -152,7 +152,7 @@ function cursorDecoration(state: EditorState): Decoration[] {
   const end = segment ? segment.index + segment.segment.length : cursor + 1;
   return [
     Decoration.inline(flat.positions[cursor]!, flat.positions[end]!, {
-      class: "rounded-[1px] bg-foreground text-background",
+      class: "vim-cursor rounded-[1px] bg-foreground text-background",
     }),
   ];
 }
