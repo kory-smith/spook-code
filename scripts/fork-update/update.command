@@ -19,7 +19,8 @@ exec claude --allowedTools \
   "Bash(git status:*)" "Bash(git log:*)" "Bash(git diff:*)" "Bash(git show:*)" \
   "Bash(git rev-parse:*)" "Bash(git branch:*)" \
   "Bash(git merge --no-commit --no-ff:*)" "Bash(git merge --abort)" "Bash(git commit --no-edit)" \
+  "Bash(git reset --hard HEAD~1)" \
   "Bash(gh release view:*)" "Bash(gh pr view:*)" \
-  "Bash(vp i)" "Bash(vp run check:changed)" \
+  "Bash(vp i)" "Bash(vp run check:changed:*)" \
   "Bash(scripts/fork-update/build.sh)" "Bash(scripts/fork-update/install.sh)" \
   -- "$(sed "s/{{RELEASE}}/$latest/g" scripts/fork-update/prompt.md)"
