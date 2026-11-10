@@ -1,0 +1,36 @@
+/* Spook Code's own styles. Loaded after index.css so they win, and kept out of it so upstream
+   releases merge without conflicts there. */
+
+/* Outline whichever area holds focus, so it is clear where keys go. */
+[data-workspace-area]:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* The composer's area is an overlay covering the whole chat, so its outline goes on the input box. */
+[data-workspace-area="composer"]:focus-within {
+  outline: none;
+
+  & [data-chat-composer-surface] {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* The normal-mode block cursor blinks like the native caret it replaces. */
+@keyframes vim-cursor-blink {
+  50% {
+    background-color: transparent;
+    color: inherit;
+  }
+}
+
+.vim-cursor {
+  animation: vim-cursor-blink 1s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vim-cursor {
+    animation: none;
+  }
+}
