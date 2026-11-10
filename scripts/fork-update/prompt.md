@@ -13,8 +13,9 @@ terminal window.
 
 ## Steps
 
-Stop at the first failure, explain it, and leave the checkout as it was (`git merge --abort` if a
-merge is in progress). Never resolve conflicts, edit files, or run commands beyond these.
+Stop at the first failure, explain it, and leave the checkout as it was: `git merge --abort` while
+the merge is uncommitted, `git reset --hard HEAD~1` once step 5 has committed it. Never resolve
+conflicts, edit files, or run commands beyond these.
 
 1. `git status` must show a clean `custom`. If not, stop.
 2. Read the release notes: `gh release view {{RELEASE}} --repo pingdotgg/t3code --json name,body`.
@@ -22,9 +23,10 @@ merge is in progress). Never resolve conflicts, edit files, or run commands beyo
    either merged or closed upstream, mention it: the merge below may conflict around that work.
 4. `git merge --no-commit --no-ff {{RELEASE}}`. If it reports conflicts, list each conflicted file with
    one line on what upstream changed and what the fork changed there, then abort and stop.
-5. `vp i`, then `vp run check:changed`. If checks fail, report the failures, abort, and stop.
-6. `scripts/fork-update/build.sh`. If the build fails, report the error, abort, and stop.
-7. `git commit --no-edit`.
+5. `vp i`, then `git commit --no-edit`, so the checks below can compare against the release.
+6. `vp run check:changed {{RELEASE}}`. Upstream CI already checked the release, so this checks only
+   what the fork adds on top of it. If checks fail, report the failures, roll back, and stop.
+7. `scripts/fork-update/build.sh`. If the build fails, report the error, roll back, and stop.
 8. `scripts/fork-update/install.sh`. It quits T3, backs up the app and data, installs the build,
    relaunches T3, and pushes `custom`.
 9. Finish with a short summary: the release you merged, anything notable in its notes, and the
