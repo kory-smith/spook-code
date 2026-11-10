@@ -13,12 +13,15 @@ terminal window.
 
 ## Steps
 
+<!-- Every command below must be allowed in update.command's --allowedTools. -->
+
 Stop at the first failure, explain it, and leave the checkout as it was: `git merge --abort` while
 the merge is uncommitted, `git reset --hard HEAD~1` once step 5 has committed it. Never resolve
 conflicts, edit files, or run commands beyond these.
 
 1. `git status` must show a clean `custom`. If not, stop.
-2. Read the release notes: `gh release view {{RELEASE}} --repo pingdotgg/t3code --json name,body`.
+2. Read the release's features (fixes and chores left out, as the notes run to hundreds of entries):
+   `gh release view {{RELEASE}} --repo pingdotgg/t3code --json name,body --jq '.name, (.body | split("\n## New Contributors")[0] | split("\n") | map(select(test("^\\* (fix|chore|refactor|docs|test|ci|build|perf|style)\\b") | not)) | join("\n") | gsub(" by @[^ ]+ in https://[^\\s]+"; ""))'`.
 3. `gh pr view 31242 --repo pingdotgg/t3code --json state,mergedAt` and the same for 29686. If
    either merged or closed upstream, mention it: the merge below may conflict around that work.
 4. `git merge --no-commit --no-ff {{RELEASE}}`. If it reports conflicts, list each conflicted file with

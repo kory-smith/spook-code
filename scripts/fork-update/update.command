@@ -1,6 +1,7 @@
 #!/bin/bash
 # Run in a new Ghostty window by the fork's "Update fork" button. Runs Claude Code on prompt.md, allowed
 # exactly the commands an update needs, so a clean update finishes without questions.
+# Keep --allowedTools in step with the commands prompt.md's steps run.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PATH="$HOME/.local/bin:$HOME/.local/share/vite-plus/bin:$HOME/.cargo/bin:/opt/homebrew/bin:$PATH"

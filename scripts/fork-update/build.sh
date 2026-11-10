@@ -13,3 +13,9 @@ export T3CODE_DESKTOP_VERSION="${release#v}"
 rm -rf -- release
 vp run dist:desktop:artifact --platform mac --target dir --arch arm64
 scripts/fork-update/sign.sh
+
+built="$(plutil -extract CFBundleShortVersionString raw "release/mac-arm64/Spook Code.app/Contents/Info.plist")"
+if [[ "$built" != "$T3CODE_DESKTOP_VERSION" ]]; then
+  echo "Built app reports version $built, expected $T3CODE_DESKTOP_VERSION from $release." >&2
+  exit 1
+fi
