@@ -171,6 +171,7 @@ describe("navigation", () => {
   it.each([
     ["j", 60],
     ["d", 50],
+    ["{Control>}d{/Control}", 40],
     ["G", 1900],
   ])("%s scrolls the pane", async (key, top) => {
     using _vim = useVimMode();
@@ -220,6 +221,42 @@ describe("navigation", () => {
     await userEvent.click(screen.getByLabelText("search"));
     await userEvent.keyboard("jk");
     expect((document.querySelector("input") as HTMLInputElement).value).toBe("jk");
+  });
+
+  it("clicks a button picked from f hints", async () => {
+    using _vim = useVimMode();
+    const onClick = vi.fn();
+    await using _screen = await render(
+      <button type="button" aria-label="Run in terminal" onClick={onClick} />,
+    );
+    await userEvent.keyboard("fh");
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("extends a zv selection with find motions", async () => {
+    using _vim = useVimMode();
+    await using _screen = await render(
+      <div data-workspace-area="conversation">
+        <p>alpha beta, gamma</p>
+      </div>,
+    );
+    const selected = () => getSelection()?.toString();
+    // `h` is the first hint label, on "alpha".
+    await userEvent.keyboard("zvh");
+    await userEvent.keyboard("t,");
+    expect(selected()).toBe("alpha beta");
+    await userEvent.keyboard("fa");
+    expect(selected()).toBe("alpha beta, ga");
+    await userEvent.keyboard(";");
+    expect(selected()).toBe("alpha beta, gamma");
+    await userEvent.keyboard(",");
+    expect(selected()).toBe("alpha beta, ga");
+    await userEvent.keyboard("F ");
+    expect(selected()).toBe("alpha beta, ");
+    await userEvent.keyboard("L");
+    expect(selected()).toBe("alpha beta, gamma");
+    await userEvent.keyboard("{Escape}");
+    expect(selected()).toBe("");
   });
 
   it("does nothing with the setting off", async () => {

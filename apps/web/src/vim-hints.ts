@@ -27,6 +27,11 @@ export function hintLabels(count: number): ReadonlyArray<string> {
   return keys.flatMap((first) => keys.map((second) => first + second)).slice(0, count);
 }
 
+/** Hover-only details, such as message timestamps, are hit-testable at zero opacity. */
+export function isOpaque(element: Element) {
+  return element.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+}
+
 /** Whether a box is on screen and its centre is not covered by something else. */
 export function isUncovered(owner: Element, { top, left, right, bottom }: DOMRect) {
   if (right <= left || bottom <= top) return false;
@@ -36,7 +41,7 @@ export function isUncovered(owner: Element, { top, left, right, bottom }: DOMRec
   return owner.contains(document.elementFromPoint(x, y));
 }
 
-/** Hints for the uncovered elements, each measured once. */
+/** Hints for the uncovered, opaque elements, each measured once. */
 export function elementHints(
   elements: Iterable<HTMLElement>,
   pick: (element: HTMLElement) => void,
@@ -44,7 +49,7 @@ export function elementHints(
   const targets: HintTarget[] = [];
   for (const element of elements) {
     const rect = element.getBoundingClientRect();
-    if (isUncovered(element, rect)) {
+    if (isUncovered(element, rect) && isOpaque(element)) {
       targets.push({ left: rect.left, top: rect.top, pick: () => pick(element) });
     }
   }
@@ -96,9 +101,16 @@ function openLink(target: HTMLElement) {
   }
 }
 
+export const TIMELINE_MINIMAP = '[data-testid="timeline-minimap"]';
+// The minimap's jump strip picks a turn from the pointer, which a synthetic click does not have.
+const BUTTON = `button:not(:disabled, ${TIMELINE_MINIMAP} *), [role="button"]:not([aria-disabled="true"])`;
+
 export function showLinkHints() {
   showHints(
-    elementHints(document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}`), openLink),
+    elementHints(
+      document.querySelectorAll<HTMLElement>(`a[href], ${OPENABLE_ROW}, ${BUTTON}`),
+      openLink,
+    ),
   );
 }
 

@@ -12,7 +12,8 @@ import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
 import { showLinkHints } from "./vim-hints";
 import { handleSidebarKey } from "./vim-sidebar";
-import { showBlockHints, showWordHints } from "./vim-text";
+import { CONVERSATION, showBlockHints, showWordHints } from "./vim-text";
+import { jumpTurn } from "./vim-turns";
 
 const SEQUENCE_TIMEOUT = 1000;
 const LINE_SCROLL = 60;
@@ -71,7 +72,7 @@ function activeScroller() {
   }
   const roots = [
     active?.closest(AREA_SELECTOR),
-    document.querySelector('[data-workspace-area="conversation"]'),
+    document.querySelector(CONVERSATION),
     document.querySelector("main"),
   ];
   for (const root of roots) {
@@ -103,15 +104,27 @@ function pressArrow(element: Element, key: string) {
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 }
 
+/** Ctrl-d and Ctrl-u page through the pane, keeping a line of the old page in view. */
+function handlePageKey(key: string) {
+  if (key !== "d" && key !== "u") return false;
+  if (document.querySelector(TYPE_TO_FOCUS_FLOATING_LAYER_SELECTOR)) return false;
+  const scroller = activeScroller();
+  if (!scroller) return false;
+  const page = scroller.clientHeight - LINE_SCROLL;
+  scroller.scrollBy({ top: key === "d" ? page : -page });
+  return true;
+}
+
 let pending = "";
 let pendingAt = 0;
 
 /** Returns whether the key was used. Editable targets belong to their own vim mode. */
 export function handleVimNavigationKey(event: KeyboardEvent) {
   if (!event.isTrusted || event.defaultPrevented || event.isComposing) return false;
-  if (event.metaKey || event.ctrlKey || event.altKey) return false;
+  if (event.metaKey || event.altKey) return false;
   const target = event.target;
   if (!(target instanceof Element) || target.closest(TYPE_TO_FOCUS_EDITABLE_SELECTOR)) return false;
+  if (event.ctrlKey) return !event.shiftKey && handlePageKey(event.key);
   const active = document.activeElement;
   // Opening a thread with Enter, `o`, or `l` comes before `l` stepping into a folder.
   if (handleSidebarKey(event.key, active)) {
@@ -160,6 +173,12 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
       return true;
     case "G":
       scroller?.scrollTo({ top: scroller.scrollHeight });
+      return true;
+    case "{":
+      jumpTurn("Previous");
+      return true;
+    case "}":
+      jumpTurn("Next");
       return true;
     case "i":
       document.querySelector<HTMLElement>(COMPOSER_SELECTOR)?.focus();

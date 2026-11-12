@@ -51,7 +51,7 @@ function switchEnvironmentTab(step: 1 | -1) {
   if (tabs.length < 2) return false;
   const current = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
   tabs[(current + step + tabs.length) % tabs.length]!.click();
-  // Focus once the new tab's rows render, landing on its open thread as Ctrl-h does.
+  // Focus once the new tab's rows render, landing on its open thread as Option-h does.
   requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
   return true;
 }
