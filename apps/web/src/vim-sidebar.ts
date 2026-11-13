@@ -1,4 +1,4 @@
-import { threadTraversalDirectionFromCommand, resolveShortcutCommand } from "./keybindings";
+import { resolveShortcutCommand } from "./keybindings";
 import { requestWorkspaceFocus } from "./lib/workspaceFocus";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { primaryServerKeybindingsAtom } from "./state/server";
@@ -56,15 +56,12 @@ function switchEnvironmentTab(step: 1 | -1) {
   return true;
 }
 
-/**
- * The previous/next thread shortcuts (Cmd-Shift-[ and ] by default, like browser tabs) switch
- * environment tabs instead while there are tabs, and move focus to the sidebar.
- */
-export function handleEnvironmentTabShortcut(event: KeyboardEvent) {
-  if (!event.metaKey && !event.ctrlKey) return false;
-  const keybindings = appAtomRegistry.get(primaryServerKeybindingsAtom);
-  const direction = threadTraversalDirectionFromCommand(resolveShortcutCommand(event, keybindings));
-  return direction !== null && switchEnvironmentTab(direction === "next" ? 1 : -1);
+/** The environment tab shortcuts, which the sidebar handles, also move focus to the sidebar. */
+export function focusSidebarAfterEnvironmentShortcut(event: KeyboardEvent) {
+  const command = resolveShortcutCommand(event, appAtomRegistry.get(primaryServerKeybindingsAtom));
+  if (command !== "sidebar.previousEnvironment" && command !== "sidebar.nextEnvironment") return;
+  if (document.querySelectorAll(`${SIDEBAR} [role="tab"]`).length < 2) return;
+  requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
 }
 
 /** Returns whether the key sequence was used. */

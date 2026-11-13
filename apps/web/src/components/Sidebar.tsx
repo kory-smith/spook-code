@@ -247,7 +247,7 @@ import {
 } from "./ui/combobox";
 import { SidebarContent, SidebarGroup, useSidebar } from "./ui/sidebar";
 import { SidebarChromeFooter, SidebarChromeHeader } from "./sidebar/SidebarChrome";
-import { SidebarEnvironmentTabs } from "./sidebar/SidebarEnvironmentTabs";
+import { SidebarEnvironmentTabs, sortEnvironmentTabs } from "./sidebar/SidebarEnvironmentTabs";
 import { SidebarHeaderIconButton, SidebarThreadHeader } from "./sidebar/SidebarThreadHeader";
 import { TooltipProvider } from "./ui/tooltip";
 import {
@@ -2945,7 +2945,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     },
   );
 
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to window keydown for thread navigation shortcuts using the current thread list
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to window keydown for thread and environment tab shortcuts using the current lists
   useEffect(() => {
     const onWindowKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || isCommandPaletteOpen() || isModelPickerOpen()) {
@@ -2964,6 +2964,23 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         navigateToThread(scopeThreadRef(targetThread.environmentId, targetThread.id));
         return true;
       };
+      const environmentStep =
+        command === "sidebar.previousEnvironment"
+          ? -1
+          : command === "sidebar.nextEnvironment"
+            ? 1
+            : 0;
+      if (environmentStep !== 0) {
+        const tabs = sortEnvironmentTabs(environments, primaryEnvironmentId);
+        if (tabs.length < 2) return;
+        const current = tabs.findIndex((tab) => tab.environmentId === environmentScopeId);
+        event.preventDefault();
+        event.stopPropagation();
+        setEnvironmentScopeId(
+          tabs[(current + environmentStep + tabs.length) % tabs.length]!.environmentId,
+        );
+        return;
+      }
       const traversalDirection = threadTraversalDirectionFromCommand(command);
       if (traversalDirection !== null) {
         navigateToThreadKey(
@@ -2982,11 +2999,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     window.addEventListener("keydown", onWindowKeyDown);
     return () => window.removeEventListener("keydown", onWindowKeyDown);
   }, [
+    environmentScopeId,
+    environments,
     keybindings,
     navigateToThread,
     orderedThreadKeys,
+    primaryEnvironmentId,
     routeRowThreadKey,
     routeThreadRef,
+    setEnvironmentScopeId,
     threadByKey,
   ]);
 

@@ -2,7 +2,7 @@ import { getClientSettings, subscribeClientSettings } from "./hooks/useSettings"
 import type { createTextareaVimHost } from "./textarea-vim";
 import { handleAreaKey } from "./vim-areas";
 import { handleHintKey } from "./vim-hints";
-import { handleEnvironmentTabShortcut } from "./vim-sidebar";
+import { focusSidebarAfterEnvironmentShortcut } from "./vim-sidebar";
 import { handleTextVisualKey } from "./vim-text";
 import { handleVimNavigationKey } from "./vim-navigation";
 
@@ -34,12 +34,8 @@ export function startVimMode() {
     if (target instanceof HTMLTextAreaElement && target.matches(TEXTAREA_SELECTOR)) attach(target);
   };
   const onKeyDown = (event: KeyboardEvent) => {
-    if (
-      handleHintKey(event) ||
-      handleTextVisualKey(event) ||
-      handleAreaKey(event) ||
-      handleEnvironmentTabShortcut(event)
-    ) {
+    focusSidebarAfterEnvironmentShortcut(event);
+    if (handleHintKey(event) || handleTextVisualKey(event) || handleAreaKey(event)) {
       event.preventDefault();
       event.stopPropagation();
       return;

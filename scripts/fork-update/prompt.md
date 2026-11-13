@@ -13,7 +13,7 @@ terminal window.
   - #31242 (vim mode), closed with every PR from an author over the open-PR limit, not on merit.
   - #29686 (sidebar environment filter), closed as a duplicate of the still-open #25069. The fork
     replaced its filter menu with one sidebar tab per environment (`SidebarEnvironmentTabs.tsx`),
-    which vim mode's Cmd-Shift-[ and ] switch between.
+    which Cmd-Shift-[ and ] (`sidebar.previousEnvironment`/`nextEnvironment`) switch between.
 
 ## Steps
 
