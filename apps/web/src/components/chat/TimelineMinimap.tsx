@@ -33,6 +33,7 @@ export function TimelineMinimap({
   hasPersistentGutter,
   hitStripWidth,
   currentIndex,
+  previousIndex,
   atEnd,
   items,
   stripMap,
@@ -42,6 +43,7 @@ export function TimelineMinimap({
   hasPersistentGutter: boolean;
   hitStripWidth: number;
   currentIndex: number | null;
+  previousIndex: number | null;
   atEnd: boolean;
   items: ReadonlyArray<TimelineMinimapItem>;
   stripMap: Map<string, HTMLSpanElement>;
@@ -71,8 +73,7 @@ export function TimelineMinimap({
       : resolveTimelineMinimapTopPercent(resolvedActiveIndex, items.length);
   const resolvedCurrentIndex =
     currentIndex !== null && currentIndex >= 0 && currentIndex < items.length ? currentIndex : null;
-  const previousItem =
-    resolvedCurrentIndex === null ? null : (items[resolvedCurrentIndex - 1] ?? null);
+  const previousItem = previousIndex === null ? null : (items[previousIndex] ?? null);
   const nextItem =
     resolvedCurrentIndex === null || atEnd ? null : (items[resolvedCurrentIndex + 1] ?? null);
 

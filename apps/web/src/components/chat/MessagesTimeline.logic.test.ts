@@ -31,6 +31,7 @@ import {
   deriveMessagesTimelineRowsWithState,
   shouldCollapseUserMessage,
   resolveAssistantMessageCopyState,
+  resolveTimelineMinimapPreviousIndex,
   type MessagesTimelineRow,
   workEntryDisplayLabel,
 } from "./MessagesTimeline.logic";
@@ -4722,5 +4723,22 @@ describe("shouldCollapseUserMessage", () => {
 
     expect(shouldCollapseUserMessage(`${citation} Can you expand on this?`)).toBe(false);
     expect(shouldCollapseUserMessage(`${citation} ${"More text. ".repeat(60)}`)).toBe(true);
+  });
+});
+
+describe("resolveTimelineMinimapPreviousIndex", () => {
+  // User messages sit at rows 0, 10 and 20.
+  const rowIndices = [0, 10, 20];
+
+  it("steps back from a visible user message to the turn before it", () => {
+    expect(resolveTimelineMinimapPreviousIndex({ visibleStart: 8, rowIndices })).toBe(0);
+  });
+
+  it("returns to the start of a turn whose user message scrolled above the viewport", () => {
+    expect(resolveTimelineMinimapPreviousIndex({ visibleStart: 23, rowIndices })).toBe(2);
+  });
+
+  it("has nowhere to go back to from the first turn", () => {
+    expect(resolveTimelineMinimapPreviousIndex({ visibleStart: 0, rowIndices })).toBeNull();
   });
 });

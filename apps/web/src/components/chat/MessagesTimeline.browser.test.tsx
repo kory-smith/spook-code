@@ -597,6 +597,39 @@ describe("MessagesTimeline messages", () => {
     });
   });
 
+  it("returns the minimap's previous turn button to the start of a long reply first", async () => {
+    setup();
+    const props = baseProps();
+    const entries = Array.from({ length: 4 }, (_, index) => [
+      message(`Question ${index}`, {}, `user-${index}`),
+      message("Answer line\n\n".repeat(index === 3 ? 200 : 2), { role: "assistant" }, `a-${index}`),
+    ]).flat();
+    await using screen = await renderTimeline(entries, props);
+    const viewport = props.listRef.current!.getScrollableNode()!;
+    const userRowOffset = (index: number) => {
+      const row = screen.container.querySelector(`[data-timeline-row-id="entry-user-${index}"]`);
+      return row ? row.getBoundingClientRect().top - viewport.getBoundingClientRect().top : null;
+    };
+    // At the bottom of the last reply, its question has scrolled out above the viewport.
+    await vi.waitFor(() => {
+      expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThan(2);
+      expect(userRowOffset(3) ?? -Infinity).toBeLessThan(0);
+      expect(screen.button("Previous turn")).not.toBeDisabled();
+    });
+
+    await click(screen.button("Previous turn"));
+    await click(screen.button("Previous turn"));
+    // The jump animates, which can outlast waitFor's default second.
+    await vi.waitFor(() => expect(Math.abs((userRowOffset(3) ?? Infinity) - 24)).toBeLessThan(3), {
+      timeout: 3000,
+    });
+
+    await click(screen.button("Previous turn"));
+    await vi.waitFor(() => expect(Math.abs((userRowOffset(2) ?? Infinity) - 24)).toBeLessThan(3), {
+      timeout: 3000,
+    });
+  });
+
   it("enables the minimap's next turn button on a thread restored above its bottom", async () => {
     setup();
     const base = baseProps();

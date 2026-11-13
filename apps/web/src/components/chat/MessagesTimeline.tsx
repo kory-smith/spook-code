@@ -80,6 +80,7 @@ import {
   resolveTimelineIsAtEnd,
   resolveTimelineMinimapHasPersistentGutter,
   resolveTimelineMinimapCurrentIndex,
+  resolveTimelineMinimapPreviousIndex,
   isTimelineMinimapRowVisible,
   resolveTimelineMinimapVisibleRange,
   resolveTimelineMinimapHitStripWidth,
@@ -799,6 +800,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
         };
   const [minimapHitStripWidth, setMinimapHitStripWidth] = useState(0);
   const [minimapCurrentIndex, setMinimapCurrentIndex] = useState<number | null>(null);
+  const [minimapPreviousIndex, setMinimapPreviousIndex] = useState<number | null>(null);
   const [minimapAtEnd, setMinimapAtEnd] = useState(false);
   const handleAnchorReady = (info: { anchorIndex: number | undefined }) => {
     if (anchorMessageId !== null && info.anchorIndex !== undefined) {
@@ -869,6 +871,12 @@ const ConversationTimeline = memo(function ConversationTimeline({
     });
     setMinimapCurrentIndex((current) =>
       current === nextCurrentIndex ? current : nextCurrentIndex,
+    );
+    setMinimapPreviousIndex(
+      resolveTimelineMinimapPreviousIndex({
+        visibleStart: visibleRange.start,
+        rowIndices: minimapRowIndices,
+      }),
     );
     // The exact bottom, not the follow re-arm zone: Next can still scroll inside that zone.
     setMinimapAtEnd(
@@ -1364,6 +1372,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
               hasPersistentGutter={minimapHasPersistentGutter}
               hitStripWidth={minimapHitStripWidth}
               currentIndex={minimapCurrentIndex}
+              previousIndex={minimapPreviousIndex}
               atEnd={minimapAtEnd}
               stripMap={minimapStripMap}
               onWheel={forwardMinimapWheel}

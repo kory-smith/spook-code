@@ -428,6 +428,18 @@ export function resolveTimelineMinimapCurrentIndex(input: {
   return precedingIndex;
 }
 
+// Like `{` in vim: the nearest user message starting above the viewport, so Previous returns to
+// the start of the turn being read before stepping to the one before it.
+export function resolveTimelineMinimapPreviousIndex(input: {
+  readonly visibleStart: number | null | undefined;
+  readonly rowIndices: ReadonlyArray<number>;
+}): number | null {
+  const { visibleStart } = input;
+  if (visibleStart == null) return null;
+  const index = input.rowIndices.findLastIndex((rowIndex) => rowIndex < visibleStart);
+  return index === -1 ? null : index;
+}
+
 function resolveTimelineSideGutter(viewportWidth: number, contentWidth: number): number {
   if (!Number.isFinite(viewportWidth) || viewportWidth <= 0 || !Number.isFinite(contentWidth)) {
     return 0;
