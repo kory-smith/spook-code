@@ -272,10 +272,21 @@ describe("navigation", () => {
   });
 });
 
-function SidebarTree({ onOpen, onMenu }: { onOpen?: () => void; onMenu?: () => void }) {
+function SidebarTree({
+  onOpen,
+  onMenu,
+  onFilter,
+}: {
+  onOpen?: () => void;
+  onMenu?: () => void;
+  onFilter?: () => void;
+}) {
   const [expanded, setExpanded] = useState({ snoozed: true, settled: false });
   return (
     <nav data-workspace-area="sidebar" ref={attachSidebarTree}>
+      <button type="button" aria-label="Filter threads by project" onClick={onFilter}>
+        filter
+      </button>
       {(["snoozed", "settled"] as const).map((shelf) => (
         <button
           key={shelf}
@@ -337,6 +348,47 @@ describe("sidebar tree keys", () => {
     await userEvent.keyboard("x");
     expect(expandedOf("snoozed")).toBe("false");
     expect(document.activeElement?.getAttribute("data-sidebar-row")).toBe("shelf:snoozed");
+  });
+
+  it("expands a collapsed shelf with x", async () => {
+    using _vim = useVimMode();
+    await using _screen = await render(<SidebarTree />);
+    document.querySelector<HTMLElement>('[data-sidebar-row="shelf:settled"]')!.focus();
+    await userEvent.keyboard("x");
+    expect(expandedOf("settled")).toBe("true");
+  });
+
+  it("collapses everything with X, then expands it all again", async () => {
+    using _vim = useVimMode();
+    await using _screen = await render(<SidebarTree />);
+    focusThread();
+    await userEvent.keyboard("X");
+    expect([expandedOf("snoozed"), expandedOf("settled")]).toEqual(["false", "false"]);
+    await userEvent.keyboard("X");
+    expect([expandedOf("snoozed"), expandedOf("settled")]).toEqual(["true", "true"]);
+  });
+
+  it("opens the filter with F and returns to the list once it hands focus back", async () => {
+    using _vim = useVimMode();
+    focusRequests.mockClear();
+    const onFilter = vi.fn();
+    await using _screen = await render(<SidebarTree onFilter={onFilter} />);
+    focusThread();
+    await userEvent.keyboard("F");
+    expect(onFilter).toHaveBeenCalledOnce();
+    document.querySelector<HTMLElement>('[aria-label="Filter threads by project"]')!.focus();
+    expect(focusRequests).toHaveBeenCalledWith(expect.objectContaining({ area: "sidebar" }));
+  });
+
+  it("moves from a header button to the list with j, instead of opening it", async () => {
+    using _vim = useVimMode();
+    focusRequests.mockClear();
+    const onFilter = vi.fn();
+    await using _screen = await render(<SidebarTree onFilter={onFilter} />);
+    document.querySelector<HTMLElement>('[aria-label="Filter threads by project"]')!.focus();
+    await userEvent.keyboard("j");
+    expect(onFilter).not.toHaveBeenCalled();
+    expect(focusRequests).toHaveBeenCalledWith(expect.objectContaining({ area: "sidebar" }));
   });
 
   it("opens or closes Snoozed and Settled together with I", async () => {

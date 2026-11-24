@@ -24,12 +24,12 @@ export const SIDEBAR_KEYS: ReadonlyArray<{ readonly keys: readonly string[]; lab
   { keys: ["Enter", "o"], label: "Open the thread and go to the composer" },
   { keys: ["l", "go"], label: "Open the thread and stay in the sidebar" },
   { keys: ["m"], label: "Open the row's menu" },
-  { keys: ["x"], label: "Collapse the section or folder" },
-  { keys: ["X"], label: "Collapse every section and folder" },
+  { keys: ["x"], label: "Collapse the section or folder, or expand a collapsed one" },
+  { keys: ["X"], label: "Collapse everything, or expand everything" },
   { keys: ["I"], label: "Show or hide Snoozed and Settled" },
   { keys: ["C"], label: "Show only this project" },
-  { keys: ["U"], label: "Show all projects" },
-  { keys: ["F"], label: "Open the project filter" },
+  { keys: ["U"], label: "Reset the filter to all projects" },
+  { keys: ["F"], label: "Filter by project, then back to the list" },
   { keys: ["1–9"], label: "Open a thread by position, pinned first" },
   { keys: ["A"], label: "Widen the sidebar, or restore it" },
   { keys: ["gt", "gT"], label: "Next or previous environment" },
@@ -66,6 +66,9 @@ export function openSidebarRow(row: HTMLElement, stay: boolean) {
   window.addEventListener("pointerdown", stop, true);
 }
 
+/** Runs after React renders what the current frame changed. */
+const afterRender = (run: () => void) => requestAnimationFrame(() => requestAnimationFrame(run));
+
 /**
  * Switches environment tab and focuses the sidebar there, ready to pick a thread.
  * Returns whether there were tabs to switch.
@@ -76,7 +79,7 @@ function switchEnvironmentTab(step: 1 | -1) {
   const current = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
   tabs[(current + step + tabs.length) % tabs.length]!.click();
   // Focus once the new tab's rows render, landing on its open thread as Option-h does.
-  requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
+  afterRender(focusSidebar);
   return true;
 }
 
@@ -85,7 +88,7 @@ export function focusSidebarAfterEnvironmentShortcut(event: KeyboardEvent) {
   const command = resolveShortcutCommand(event, appAtomRegistry.get(primaryServerKeybindingsAtom));
   if (command !== "sidebar.previousEnvironment" && command !== "sidebar.nextEnvironment") return;
   if (document.querySelectorAll(`${SIDEBAR} [role="tab"]`).length < 2) return;
-  requestAnimationFrame(() => requestAnimationFrame(focusSidebar));
+  afterRender(focusSidebar);
 }
 
 function sidebarRow(id: string | undefined) {
@@ -96,26 +99,77 @@ function sidebarRow(id: string | undefined) {
 
 const isExpanded = (row: HTMLElement) => row.getAttribute("aria-expanded") === "true";
 
-const pressArrowLeft = (row: Element) =>
-  row.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }),
-  );
+const pressArrow = (row: Element, key: "ArrowLeft" | "ArrowRight") =>
+  row.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 
 /**
  * NERDTree's `x`: closes the node the row sits in, or the row itself when it is an open one.
- * The tree's ArrowLeft steps to the parent, then a second one collapses it.
+ * The tree's ArrowLeft steps to the parent, then a second one collapses it; ArrowRight opens a
+ * closed row.
  */
-function collapseEnclosing(row: HTMLElement) {
-  if (!isExpanded(row)) pressArrowLeft(row);
+function toggleEnclosing(row: HTMLElement) {
+  if (row.getAttribute("aria-expanded") === "false") {
+    pressArrow(row, "ArrowRight");
+    return;
+  }
+  if (!isExpanded(row)) pressArrow(row, "ArrowLeft");
   const target = document.activeElement;
-  if (target instanceof HTMLElement && isExpanded(target)) pressArrowLeft(target);
+  if (target instanceof HTMLElement && isExpanded(target)) pressArrow(target, "ArrowLeft");
 }
 
-function collapseAll() {
-  const expanded = `${SIDEBAR} [data-sidebar-row][aria-expanded="true"]`;
-  for (const row of document.querySelectorAll<HTMLElement>(expanded)) {
-    row.click();
+const rowsExpanded = (expanded: boolean) => [
+  ...document.querySelectorAll<HTMLElement>(
+    `${SIDEBAR} [data-sidebar-row][aria-expanded="${expanded}"]`,
+  ),
+];
+
+// Bumped by each `X`, so a press mid-expand stops the levels still to come.
+let expandGeneration = 0;
+
+/** Opening a section renders its folders closed, so expanding goes a level per render. */
+function expandAll(generation: number, levels = 3) {
+  const collapsed = rowsExpanded(false);
+  if (generation !== expandGeneration || collapsed.length === 0 || levels === 0) return;
+  for (const row of collapsed) row.click();
+  afterRender(() => expandAll(generation, levels - 1));
+}
+
+function toggleAll() {
+  expandGeneration += 1;
+  const expanded = rowsExpanded(true);
+  if (expanded.length === 0) {
+    expandAll(expandGeneration);
+    return;
   }
+  for (const row of expanded) row.click();
+}
+
+let stopFilterWatch: AbortController | undefined;
+
+/** Picking a project returns focus to the filter button, so carry on in the list instead. */
+function openProjectFilter() {
+  const trigger = document.querySelector<HTMLElement>(
+    `${SIDEBAR} [aria-label^="Filter threads by project"]`,
+  );
+  if (!trigger) return;
+  stopFilterWatch?.abort();
+  const watch = new AbortController();
+  stopFilterWatch = watch;
+  // The menu's search box takes focus while it is open; focus anywhere else ends the watch.
+  window.addEventListener(
+    "focusin",
+    (event) => {
+      if (event.target instanceof HTMLInputElement) return;
+      watch.abort();
+      if (event.target === trigger) focusSidebar();
+    },
+    { signal: watch.signal },
+  );
+  window.addEventListener("pointerdown", () => watch.abort(), {
+    capture: true,
+    signal: watch.signal,
+  });
+  trigger.click();
 }
 
 /** Like NERDTree's `I` for hidden files: Snoozed and Settled open or close together. */
@@ -136,15 +190,13 @@ export function handleSidebarKey(sequence: string, active: Element | null) {
       switchEnvironmentTab(sequence === "gt" ? 1 : -1);
       return true;
     case "X":
-      collapseAll();
+      toggleAll();
       return true;
     case "I":
       toggleQuietShelves();
       return true;
     case "F":
-      document
-        .querySelector<HTMLElement>(`${SIDEBAR} [aria-label="Filter threads by project"]`)
-        ?.click();
+      openProjectFilter();
       return true;
     case "U":
       requestSidebarScope(null);
@@ -168,13 +220,18 @@ export function handleSidebarKey(sequence: string, active: Element | null) {
     return true;
   }
   const row = active.closest<HTMLElement>("[data-sidebar-row]");
-  if (!row) return false;
+  if (!row) {
+    // Off the rows, on a header button such as the filter, ArrowDown would open it.
+    if (sequence !== "j" && sequence !== "k") return false;
+    focusSidebar();
+    return true;
+  }
   switch (sequence) {
     case "m":
       openRowContextMenu(row);
       return true;
     case "x":
-      collapseEnclosing(row);
+      toggleEnclosing(row);
       return true;
     case "C":
       requestSidebarScope(row.dataset.sidebarRow!);

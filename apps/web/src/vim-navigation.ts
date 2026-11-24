@@ -137,7 +137,11 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
 
   const list = active?.closest(LIST_SELECTOR);
   const arrow = LIST_ARROWS[event.key];
-  if (active && list && arrow) {
+  // A button that opens a popup, such as the sidebar's filter, would open on the arrow.
+  const opensPopup =
+    active?.matches("[aria-haspopup], [role='combobox']") &&
+    !active.closest('[role="menu"], [role="listbox"], [role="tree"]');
+  if (active && list && arrow && !opensPopup) {
     pressArrow(active, arrow);
     return true;
   }
