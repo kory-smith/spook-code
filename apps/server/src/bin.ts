@@ -3,6 +3,8 @@ import * as NodeModule from "node:module";
 import * as NodeSea from "node:sea";
 import * as NodeURL from "node:url";
 
+import { scrubClaudeSessionEnv } from "@t3tools/shared/claudeSessionEnv";
+
 import { isEntrypoint } from "./entrypoint.ts";
 
 // Loads the CLI outside the launcher's module graph. Packaged builds embed it as a raw asset.
@@ -37,6 +39,7 @@ if (
     runtimeMain: import.meta.main,
   })
 ) {
+  scrubClaudeSessionEnv();
   // The launcher owns shutdown until its child exits, so it bypasses the Effect CLI runtime.
   // The service unit passes no arguments; flags and help go through the full CLI.
   if (process.argv[2] === "__service-launcher" && process.argv.length === 3) {

@@ -20,6 +20,7 @@ import * as Electron from "electron";
 
 import * as NetService from "@t3tools/shared/Net";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { scrubClaudeSessionEnv } from "@t3tools/shared/claudeSessionEnv";
 import type { RemoteT3RunnerOptions } from "@t3tools/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
 
@@ -88,6 +89,8 @@ if (process.argv.includes("--version")) {
   }
   Electron.app.exit(0);
 }
+
+scrubClaudeSessionEnv();
 
 const layerDesktopEnvironment = Layer.unwrap(
   Effect.gen(function* () {

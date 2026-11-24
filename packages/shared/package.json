@@ -7,6 +7,10 @@
       "types": "./src/pullRequestAnchor.ts",
       "import": "./src/pullRequestAnchor.ts"
     },
+    "./claudeSessionEnv": {
+      "types": "./src/claudeSessionEnv.ts",
+      "import": "./src/claudeSessionEnv.ts"
+    },
     "./changedFileKind": {
       "types": "./src/changedFileKind.ts",
       "import": "./src/changedFileKind.ts"
