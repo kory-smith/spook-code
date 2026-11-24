@@ -102,6 +102,25 @@ composer; press `i` to go there.
 
 Keys that run a command use your shortcut for it, so a command with no shortcut does nothing.
 
+### In the sidebar
+
+With a sidebar row focused, these keys work like a file tree in Vim. Press `?` to list them.
+
+| Keys        | Action                                             |
+| ----------- | -------------------------------------------------- |
+| `Enter` `o` | Open the thread and go to the composer             |
+| `l` `go`    | Open the thread and stay in the sidebar            |
+| `m`         | Open the row's menu                                |
+| `x`         | Collapse the section or folder the row is in       |
+| `X`         | Collapse every section and folder                  |
+| `I`         | Show or hide Snoozed and Settled                   |
+| `C`         | Show only the row's project                        |
+| `U`         | Show all projects                                  |
+| `F`         | Open the project filter                            |
+| `1`–`9`     | Open a thread by position, pinned threads first    |
+| `A`         | Widen the sidebar as far as it goes, or restore it |
+| `gt` `gT`   | Next or previous environment                       |
+
 ## Copy pull request references
 
 With a PR open in the right panel or on the Pull requests page, use `mod+shift+c`

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 
 import { render } from "../test/render";
+import { attachSidebarTree } from "./lib/sidebarTree";
 import { startVimMode } from "./vim-mode";
 
 const settings = vi.hoisted(() => ({ vimModeEnabled: true }));
@@ -33,6 +34,11 @@ vi.mock("./rpc/atomRegistry", () => ({
   },
 }));
 vi.mock("./state/server", () => ({ primaryServerKeybindingsAtom: {} }));
+const focusRequests = vi.hoisted(() => vi.fn());
+vi.mock(import("./lib/workspaceFocus"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  requestWorkspaceFocus: focusRequests,
+}));
 
 function useVimMode() {
   settings.vimModeEnabled = true;
@@ -263,5 +269,83 @@ describe("navigation", () => {
     await using _screen = await render(<Pane />);
     await userEvent.keyboard("j");
     expect(document.querySelector("main")?.scrollTop).toBe(0);
+  });
+});
+
+function SidebarTree({ onOpen, onMenu }: { onOpen?: () => void; onMenu?: () => void }) {
+  const [expanded, setExpanded] = useState({ snoozed: true, settled: false });
+  return (
+    <nav data-workspace-area="sidebar" ref={attachSidebarTree}>
+      {(["snoozed", "settled"] as const).map((shelf) => (
+        <button
+          key={shelf}
+          type="button"
+          data-sidebar-row={`shelf:${shelf}`}
+          aria-expanded={expanded[shelf]}
+          onClick={() => setExpanded((current) => ({ ...current, [shelf]: !current[shelf] }))}
+        >
+          {shelf}
+        </button>
+      ))}
+      <li data-thread-item="thread-1">
+        <button
+          type="button"
+          data-sidebar-row="thread-1"
+          data-sidebar-parent="shelf:snoozed"
+          onClick={onOpen}
+          onContextMenu={onMenu}
+        >
+          thread
+        </button>
+      </li>
+    </nav>
+  );
+}
+
+describe("sidebar tree keys", () => {
+  const focusThread = () =>
+    document.querySelector<HTMLElement>('[data-sidebar-row="thread-1"]')!.focus();
+  const expandedOf = (shelf: string) =>
+    document.querySelector(`[data-sidebar-row="shelf:${shelf}"]`)?.getAttribute("aria-expanded");
+
+  it("opens with go and stays, where o leaves for the composer", async () => {
+    using _vim = useVimMode();
+    focusRequests.mockClear();
+    const onOpen = vi.fn();
+    await using _screen = await render(<SidebarTree onOpen={onOpen} />);
+    focusThread();
+    await userEvent.keyboard("go");
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(focusRequests).not.toHaveBeenCalledWith({ area: "content" });
+    await userEvent.keyboard("o");
+    expect(focusRequests).toHaveBeenCalledWith({ area: "content" });
+  });
+
+  it("opens the row's menu with m", async () => {
+    using _vim = useVimMode();
+    const onMenu = vi.fn();
+    await using _screen = await render(<SidebarTree onMenu={onMenu} />);
+    focusThread();
+    await userEvent.keyboard("m");
+    expect(onMenu).toHaveBeenCalledOnce();
+  });
+
+  it("collapses the enclosing shelf with x and lands on it", async () => {
+    using _vim = useVimMode();
+    await using _screen = await render(<SidebarTree />);
+    focusThread();
+    await userEvent.keyboard("x");
+    expect(expandedOf("snoozed")).toBe("false");
+    expect(document.activeElement?.getAttribute("data-sidebar-row")).toBe("shelf:snoozed");
+  });
+
+  it("opens or closes Snoozed and Settled together with I", async () => {
+    using _vim = useVimMode();
+    await using _screen = await render(<SidebarTree />);
+    focusThread();
+    await userEvent.keyboard("I");
+    expect([expandedOf("snoozed"), expandedOf("settled")]).toEqual(["false", "false"]);
+    await userEvent.keyboard("I");
+    expect([expandedOf("snoozed"), expandedOf("settled")]).toEqual(["true", "true"]);
   });
 });

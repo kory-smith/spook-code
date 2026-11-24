@@ -45,8 +45,7 @@ export function startVimMode() {
     event.preventDefault();
     event.stopPropagation();
   };
-  const apply = () => {
-    const next = getClientSettings().vimModeEnabled;
+  const apply = (next = getClientSettings().vimModeEnabled) => {
     if (next === enabled) return;
     enabled = next;
     if (enabled) {
@@ -64,5 +63,9 @@ export function startVimMode() {
     hosts.clear();
   };
   apply();
-  return subscribeClientSettings(apply);
+  const unsubscribe = subscribeClientSettings(() => apply());
+  return () => {
+    unsubscribe();
+    apply(false);
+  };
 }

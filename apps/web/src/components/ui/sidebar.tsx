@@ -495,8 +495,10 @@ function SidebarRail({
         return width;
       },
       finish(finalWidth, moved) {
-        wrapper.style.setProperty("--sidebar-width", `${finalWidth}px`);
         suppressClickRef.current = moved;
+        // A click toggles the sidebar; only a drag commits a width.
+        if (!moved) return;
+        wrapper.style.setProperty("--sidebar-width", `${finalWidth}px`);
         if (options.storageKey) {
           try {
             setLocalStorageItem(options.storageKey, finalWidth, Schema.Finite);

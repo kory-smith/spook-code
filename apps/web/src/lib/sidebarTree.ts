@@ -1,5 +1,18 @@
 const ROW = "[data-sidebar-row]";
 
+/** Opens a row's menu under it through the row's own selection-aware handler, Electron's native menu included. */
+export function openRowContextMenu(row: HTMLElement) {
+  const rect = row.getBoundingClientRect();
+  row.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left,
+      clientY: rect.bottom,
+    }),
+  );
+}
+
 /** Ref callback for a sidebar list; installs its keyboard navigation and returns its cleanup. */
 export function attachSidebarTree(element: HTMLElement | null) {
   return element ? installSidebarTree(element) : undefined;
@@ -151,17 +164,8 @@ export function installSidebarTree(root: HTMLElement) {
     event.preventDefault();
     event.stopPropagation();
     if (document.activeElement !== row || !row.isConnected) return;
-    const rect = row.getBoundingClientRect();
-    // Like VS Code's list, suppress keydown and open on release. Reuse the row's
-    // selection-aware handler, including its Electron native menu route.
-    row.dispatchEvent(
-      new MouseEvent("contextmenu", {
-        bubbles: true,
-        cancelable: true,
-        clientX: rect.left,
-        clientY: rect.bottom,
-      }),
-    );
+    // Like VS Code's list, suppress keydown and open on release.
+    openRowContextMenu(row);
   };
   const observer = new MutationObserver(restoreFocus);
   observer.observe(root, {

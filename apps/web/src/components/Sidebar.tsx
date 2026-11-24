@@ -1,3 +1,4 @@
+import { onSidebarScopeRequest } from "../lib/sidebarKeyState";
 import { attachSidebarTree } from "../lib/sidebarTree";
 import { type EnvironmentId, type ScopedProjectRef } from "@t3tools/contracts";
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
@@ -71,6 +72,7 @@ import {
 } from "lucide-react";
 import {
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useReducer,
   useRef,
@@ -1860,6 +1862,26 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     snoozedThreadKeysRef.current = snoozedThreadKeys;
     sectionByThreadKeyRef.current = sectionByThreadKey;
   });
+  // Vim's `C` scopes the list to the focused row's project, as the row menu's filter does; `U` clears it.
+  const handleScopeRequest = useEffectEvent((row: string | null) => {
+    if (row === null) {
+      setProjectScopeKeys([]);
+      return;
+    }
+    const thread = threadByKeyRef.current.get(row);
+    const group = projectGroupsRef.current.find(
+      (candidate) =>
+        sidebarFolderRowId(candidate.projectKey) === row ||
+        (thread !== undefined &&
+          candidate.memberProjectRefs.some(
+            (ref) =>
+              ref.environmentId === thread.environmentId && ref.projectId === thread.projectId,
+          )),
+    );
+    if (group && !group.archived) setProjectScopeKeys([group.projectKey]);
+  });
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to vim's sidebar scope keys, which fire outside React
+  useEffect(() => onSidebarScopeRequest(handleScopeRequest), []);
   const startActionSweep = useStableCallback(
     (threadRef: ScopedThreadRef, action: SidebarSweepAction, event: PointerEvent) => {
       const originKey = scopedThreadKey(threadRef);

@@ -126,8 +126,10 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
   if (!(target instanceof Element) || target.closest(TYPE_TO_FOCUS_EDITABLE_SELECTOR)) return false;
   if (event.ctrlKey) return !event.shiftKey && handlePageKey(event.key);
   const active = document.activeElement;
-  // Opening a thread with Enter, `o`, or `l` comes before `l` stepping into a folder.
-  if (handleSidebarKey(event.key, active)) {
+  const prefix = Date.now() - pendingAt < SEQUENCE_TIMEOUT ? pending : "";
+  // Opening a thread with Enter, `o`, or `l` comes before `l` stepping into a folder,
+  // unless a prefix is waiting, so `go` is not read as `o`.
+  if (prefix === "" && handleSidebarKey(event.key, active)) {
     pending = "";
     return true;
   }
@@ -142,7 +144,7 @@ export function handleVimNavigationKey(event: KeyboardEvent) {
   // Dialogs and popups own their keys, apart from moving through their lists above.
   if (document.querySelector(TYPE_TO_FOCUS_FLOATING_LAYER_SELECTOR)) return false;
 
-  const sequence = Date.now() - pendingAt < SEQUENCE_TIMEOUT ? pending + event.key : event.key;
+  const sequence = prefix + event.key;
   pending = "";
   if (sequence === "g" || sequence === "z" || sequence === "y") {
     pending = sequence;

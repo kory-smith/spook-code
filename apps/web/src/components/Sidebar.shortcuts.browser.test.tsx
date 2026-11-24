@@ -1,5 +1,5 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { DEFAULT_CLIENT_SETTINGS } from "@t3tools/contracts/settings";
 import type * as Context from "effect/Context";
 import { expect, it, vi } from "vite-plus/test";
@@ -10,6 +10,8 @@ import { AppRoot } from "~/AppRoot";
 import "~/components/ChatView";
 import { __setClientSettingsForTests } from "~/hooks/useSettings";
 import { useRightPanelStore } from "~/rightPanelStore";
+import { useUiStateStore } from "~/uiStateStore";
+import { startVimMode } from "~/vim-mode";
 import { getRouter } from "~/router";
 import {
   ENVIRONMENT_ID,
@@ -100,4 +102,34 @@ it("leaves thread shortcuts and their hints to the preview when their rules excl
     expect(router.history.location.pathname).toBe(`/${ENVIRONMENT_ID}/${second.id}`),
   );
   await whileHoldingControl(() => expect(jumpHint()).not.toBeNull());
+});
+
+it("scopes the list to the focused row's project with vim's C, and clears it with U", async () => {
+  const thread = threadWithHistory("thread-a", 1);
+  using _environment = installFakeEnvironment([thread]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+    vimModeEnabled: true,
+  });
+  await page.viewport(1400, 900);
+  const router = getRouter(createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}`] }));
+  await router.load();
+  await using _app = await render(<AppRoot router={router} />, {
+    // AppRoot brings its own router.
+    router: false,
+  });
+  await expect.element(page.getByText(`Thread ${thread.id}`).first()).toBeVisible();
+  const row = document.querySelector<HTMLElement>(
+    `[data-sidebar-row="${scopedThreadKey(scopeThreadRef(ENVIRONMENT_ID, thread.id))}"]`,
+  )!;
+  // main.tsx starts vim mode with the app's services, which AppRoot leaves out.
+  using _vim = { [Symbol.dispose]: startVimMode() };
+  row.focus();
+  const scope = () => useUiStateStore.getState().sidebarProjectScopeKeys;
+
+  await userEvent.keyboard("C");
+  await vi.waitFor(() => expect(scope()).toHaveLength(1));
+  await userEvent.keyboard("U");
+  await vi.waitFor(() => expect(scope()).toEqual([]));
 });
